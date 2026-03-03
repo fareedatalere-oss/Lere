@@ -1,0 +1,17 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "user-avatar",
+      "description": "User profile avatar placeholder",
+      "imageUrl": "https://picsum.photos/seed/user1/200/200",
+      "imageHint": "profile avatar"
+    },
+    {
+      "id": "video-call-bg",
+      "description": "Video call background placeholder",
+      "imageUrl": "https://picsum.photos/seed/call1/800/600",
+      "imageHint": "video call"
+    }
+  ]
+}
