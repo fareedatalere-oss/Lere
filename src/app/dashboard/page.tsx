@@ -5,22 +5,30 @@ import { useState, useEffect } from "react";
 import { UserProvider, useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Phone, Video, Send, Smartphone, Wifi, CreditCard, User, MessageSquare, LogOut, Wallet } from "lucide-react";
+import { Phone, Video, Send, Smartphone, Wifi, CreditCard, User, MessageSquare, LogOut, Wallet, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CallInterface } from "@/components/CallInterface";
 import { IceBreaker } from "@/components/IceBreaker";
 import { Separator } from "@/components/ui/separator";
 
 function DashboardContent() {
-  const { user, logout } = useUser();
+  const { user, logout, isLoading } = useUser();
   const router = useRouter();
   const [isCalling, setIsCalling] = useState<{ isOpen: boolean; type: "voice" | "video" }>({ isOpen: false, type: "voice" });
 
   useEffect(() => {
-    if (!user) {
+    if (!isLoading && !user) {
       router.push("/login");
     }
-  }, [user, router]);
+  }, [user, isLoading, router]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   if (!user) return null;
 
