@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { UserProvider, useUser } from "@/context/UserContext";
+import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +10,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/componen
 import Link from "next/link";
 import { Phone, Lock } from "lucide-react";
 
-function LoginPageContent() {
+export default function LoginPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [pin, setPin] = useState("");
   const { login } = useUser();
@@ -76,13 +75,5 @@ function LoginPageContent() {
         </CardFooter>
       </Card>
     </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <UserProvider>
-      <LoginPageContent />
-    </UserProvider>
   );
 }

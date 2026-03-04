@@ -1,8 +1,7 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
-import { UserProvider, useUser } from "@/context/UserContext";
+import { useUser } from "@/context/UserContext";
 import { useFirebase } from "@/firebase";
 import { 
   collection, 
@@ -43,7 +42,7 @@ import {
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
 
-function DashboardContent() {
+export default function Dashboard() {
   const { user, logout, isLoading } = useUser();
   const { firestore } = useFirebase();
   const router = useRouter();
@@ -275,13 +274,5 @@ function DashboardContent() {
         onClose={() => setIsCalling({ ...isCalling, isOpen: false, incomingCallId: undefined })} 
       />
     </div>
-  );
-}
-
-export default function Dashboard() {
-  return (
-    <UserProvider>
-      <DashboardContent />
-    </UserProvider>
   );
 }

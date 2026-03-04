@@ -1,13 +1,11 @@
-
 "use client";
 
-import { useUser, UserProvider } from "@/context/UserContext";
+import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { Video, Phone, Shield, Globe, ArrowRight, Zap } from "lucide-react";
-import Image from "next/image";
 
-function LandingContent() {
+export default function Home() {
   const { user, isLoading } = useUser();
   const router = useRouter();
 
@@ -88,13 +86,5 @@ function LandingContent() {
         &copy; {new Date().getFullYear()} Lere Connect. All rights reserved.
       </footer>
     </div>
-  );
-}
-
-export default function Home() {
-  return (
-    <UserProvider>
-      <LandingContent />
-    </UserProvider>
   );
 }

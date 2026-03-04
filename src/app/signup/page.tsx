@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { UserProvider, useUser } from "@/context/UserContext";
+import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +10,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/componen
 import Link from "next/link";
 import { User, Phone, Lock, Hash, Star } from "lucide-react";
 
-function SignupPageContent() {
+export default function SignupPage() {
   const [formData, setFormData] = useState({
     username: "",
     phoneNumber: "",
@@ -99,13 +98,5 @@ function SignupPageContent() {
         </CardFooter>
       </Card>
     </div>
-  );
-}
-
-export default function SignupPage() {
-  return (
-    <UserProvider>
-      <SignupPageContent />
-    </UserProvider>
   );
 }
