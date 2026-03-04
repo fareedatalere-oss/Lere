@@ -28,7 +28,8 @@ import {
   TrendingUp,
   Stethoscope,
   Brain,
-  Wrench
+  Wrench,
+  Sparkles
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -48,7 +49,7 @@ interface Book {
   cover: string;
 }
 
-const generate1000Books = (): Book[] => {
+const generate2000Books = (): Book[] => {
   const books: Book[] = [];
   const categories: Category[] = [
     "Science", "ICT", "Qur'an", "Hadiths", "Islam", "Christian", 
@@ -61,98 +62,100 @@ const generate1000Books = (): Book[] => {
       "Physics Fundamentals", "Quantum Mechanics", "Organic Chemistry", "Evolutionary Biology", 
       "Astrophysics", "Genetics Today", "Neuroscience Intro", "General Relativity", 
       "Chemical Engineering", "Botany Studies", "Nuclear Physics", "Marine Biology", 
-      "Theoretical Physics", "Geology Basics", "Molecular Biology"
+      "Theoretical Physics", "Geology Basics", "Molecular Biology", "Entomology Guide",
+      "Thermodynamics for Beginners", "Astronomy Explorer", "Climatology Reports"
     ],
     "ICT": [
       "Cloud Architecture", "Python for Data", "Cybersecurity Shield", "React Native Pro", 
       "AI & Ethics", "Blockchain Ledger", "UI/UX Mastery", "System Design", 
       "Networking Basics", "Database Management", "Kubernetes in Action", "Frontend Wizardry",
-      "Backend Scalability", "Machine Learning Ops", "DevOps Handbook"
+      "Backend Scalability", "Machine Learning Ops", "DevOps Handbook", "Swift UI Patterns",
+      "Go Programming", "Rust Systems", "Edge Computing"
     ],
     "Qur'an": [
       "Surah Al-Baqarah Study", "The Noble Qur'an", "Tajweed Guide", "Tafsir Al-Jalalayn", 
       "Qur'anic Arabic", "Chronology of Revelation", "Verses of Wisdom", "The Holy Message", 
       "Qur'an Recitation", "Linguistic Miracles", "Divine Guidance", "Light of Faith",
-      "Qur'anic Stories", "Message of Peace", "The Final Testament"
+      "Qur'anic Stories", "Message of Peace", "The Final Testament", "Guidance for Humanity"
     ],
     "Hadiths": [
       "Sahih Al-Bukhari Vol", "Sahih Muslim Gems", "Riyadh as-Salihin", "40 Hadith Nawawi", 
       "Sunan Abi Dawud", "Hadith Science", "The Prophetic Way", "Authentic Narrations", 
       "Ethics in Hadith", "Daily Adhkar", "Sayings of Muhammad", "The Sunnah Code",
-      "Golden Chains", "Hadith Methodology", "Path to Paradise"
+      "Golden Chains", "Hadith Methodology", "Path to Paradise", "Wisdom of the Prophet"
     ],
     "Islam": [
       "Fiqh of Worship", "Islamic History", "Lives of Prophets", "Sufism Insights", 
       "Hajj & Umrah Guide", "Zakat Principles", "Islamic Law", "Philosophy of Deen", 
       "Great Scholars", "Modern Islamic Thought", "The Pillars of Islam", "Islamic Civilization",
-      "Muslim Spain", "Ottoman Empire", "The Caliphate Legacy"
+      "Muslim Spain", "Ottoman Empire", "The Caliphate Legacy", "Sharia Principles"
     ],
     "Christian": [
       "The Holy Bible (KJV)", "New Testament Study", "Psalms & Proverbs", "Church History", 
       "Systematic Theology", "Gospel Analysis", "Old Testament Kings", "Epistles of Paul", 
       "Biblical Prophecy", "Christian Ethics", "Walk with Christ", "The Reformation",
-      "Orthodox Traditions", "Catholic Catechism", "Global Missions"
+      "Orthodox Traditions", "Catholic Catechism", "Global Missions", "The Word of God"
     ],
     "History": [
       "African Kingdoms", "Ancient Rome", "The Industrial Era", "World War II Docs", 
       "Medieval Europe", "Cold War Secrets", "Ancient Egypt", "History of Nigeria", 
       "The Renaissance", "Global Revolutions", "Silk Road Traders", "Mughal Empire",
-      "Aztec Civilization", "The Great Depression", "Modern Age History"
+      "Aztec Civilization", "The Great Depression", "Modern Age History", "Viking Sagas"
     ],
     "Laws": [
       "Constitutional Law", "Criminal Justice", "International Treaties", "Human Rights Law", 
       "Corporate Legalities", "Environmental Acts", "Legal Ethics", "Property Law", 
       "Civil Rights History", "Global Jurisprudence", "Intellectual Property", "Family Law",
-      "Maritime Law", "Labor Standards", "The Bill of Rights"
+      "Maritime Law", "Labor Standards", "The Bill of Rights", "Constitutional Drafting"
     ],
     "Philosophy": [
       "Meditations on Existence", "The Republic Study", "Beyond Good and Evil", "The Art of War", 
       "Critique of Pure Reason", "Eastern Wisdom", "Logic & Reason", "Existentialism Intro", 
       "The Social Contract", "Ethics of Antiquity", "Stoic Resilience", "Plato's Dialogues",
-      "Aristotle's Logic", "Nihilism Explored", "Zen Philosophy"
+      "Aristotle's Logic", "Nihilism Explored", "Zen Philosophy", "Metaphysical Inquiries"
     ],
     "Literature": [
       "Classic Poetry", "Shakespeare's Sonnets", "Modernist Prose", "The Odyssey Retold", 
       "Anthology of Drama", "Victorian Novels", "Symbolist Movement", "The Epic of Gilgamesh", 
       "Gothic Fiction", "Post-Colonial Tales", "Beowulf Translation", "Russian Realism",
-      "Magic Realism", "African Literature", "Beat Generation Poetry"
+      "Magic Realism", "African Literature", "Beat Generation Poetry", "The Great Novels"
     ],
     "Arts": [
       "Renaissance Masters", "Abstract Expressionism", "History of Sculpture", "Musical Theory", 
       "Cinema Esthetics", "Architectural Wonders", "The Color Theory", "Gothic Art", 
       "Impressionist Light", "Digital Art Evolution", "Cubism Movement", "Baroque Design",
-      "Photography Art", "Surrealist Dreams", "Ancient Pottery"
+      "Photography Art", "Surrealist Dreams", "Ancient Pottery", "Modern Design"
     ],
     "Biographies": [
       "Nelson Mandela: A Long Walk", "Steve Jobs: The Visionary", "Malala: The Voice", 
       "Einstein: The Genius", "Marie Curie: Radiation", "Malcolm X: Legacy", 
       "Da Vinci: The Polymath", "Cleopatra: Queen", "Lincoln: The Unifier", 
       "Mao: The Revolution", "Churchill: The Bulldog", "Frida Kahlo: Spirit",
-      "Martin Luther King Jr.", "Alexander the Great", "Catherine the Great"
+      "Martin Luther King Jr.", "Alexander the Great", "Catherine the Great", "Isaac Newton"
     ],
     "Economics": [
       "The Wealth of Nations", "Capital in 21st Century", "Macroeconomics Intro", "Stock Market Mastery",
       "Behavioral Economics", "Global Trade Policy", "The Fed & Money", "Corporate Finance",
       "Game Theory Basics", "Economic History", "Crypto Economy", "Venture Capital",
-      "Taxation Law", "Poverty & Progress", "Microfinance impact"
+      "Taxation Law", "Poverty & Progress", "Microfinance impact", "Econometrics"
     ],
     "Health": [
       "Human Anatomy", "Nutrition Science", "Mental Wellness", "First Aid Manual",
       "Cardiology Intro", "Public Health Policy", "Yoga & Health", "The Immune System",
       "Pharmacology", "Alternative Medicine", "Global Pandemics", "Sleep Science",
-      "Geriatric Care", "Pediatric Health", "Fitness Biology"
+      "Geriatric Care", "Pediatric Health", "Fitness Biology", "Virology"
     ],
     "Psychology": [
       "Interpretation of Dreams", "Cognitive Behavioral", "Social Psychology", "Child Development",
       "Clinical Psychiatry", "Memory & Learning", "Emotions & Logic", "Personality Types",
       "Group Dynamics", "Forensic Psychology", "Positive Psychology", "Intelligence Testing",
-      "Habit Formation", "Dark Psychology", "Spiritual Healing"
+      "Habit Formation", "Dark Psychology", "Spiritual Healing", "Neuropsychology"
     ],
     "Engineering": [
       "Civil Engineering", "Mechanical Dynamics", "Electrical Circuits", "Aerospace Design",
       "Robotics Intro", "Software Engineering", "Renewable Energy", "Bridge Construction",
       "Auto Engineering", "Materials Science", "Fluid Mechanics", "Thermodynamics",
-      "Nanotechnology", "Urban Planning", "Safety Protocols"
+      "Nanotechnology", "Urban Planning", "Safety Protocols", "Structural Analysis"
     ],
     "All": []
   };
@@ -161,10 +164,11 @@ const generate1000Books = (): Book[] => {
     "Dr. Ahmed Lere", "Prof. Jane Smith", "Imam Malik", "Justice Roberts", 
     "Scholar John", "Apostle Paul", "Historian Musa", "Barrister Bello", 
     "Dr. Sarah", "Sheikh Ibrahim", "Dr. Marcus Aurelius", "Homer", 
-    "William Shakespeare", "Karl Marx", "Adam Smith", "Sigmund Freud"
+    "William Shakespeare", "Karl Marx", "Adam Smith", "Sigmund Freud",
+    "Marie Curie", "Nikola Tesla", "Ibn Khaldun", "Avicenna"
   ];
 
-  for (let i = 1; i <= 1000; i++) {
+  for (let i = 1; i <= 2000; i++) {
     const cat = categories[i % categories.length];
     const templates = categoryTemplates[cat];
     const template = templates[i % templates.length];
@@ -181,7 +185,7 @@ const generate1000Books = (): Book[] => {
   return books;
 };
 
-const MASTER_LIBRARY = generate1000Books();
+const MASTER_LIBRARY = generate2000Books();
 
 export default function LibraryPage() {
   const router = useRouter();
@@ -256,11 +260,25 @@ export default function LibraryPage() {
             </div>
             <CardContent className="p-8 space-y-4">
               <div className="space-y-2">
-                <Badge className="bg-white/20 text-white border-none mb-2">1,000+ Unique Titles</Badge>
+                <Badge className="bg-white/20 text-white border-none mb-2">2,000+ Unique Titles</Badge>
                 <h2 className="text-3xl font-bold">World Knowledge</h2>
-                <p className="text-primary-foreground/80">Discover history, laws, philosophy, and scripture from every corner of the globe.</p>
+                <p className="text-primary-foreground/80">Search 2,000 books instantly.</p>
               </div>
-              <div className="grid grid-cols-2 gap-3 pt-4">
+              <div className="pt-2">
+                 <div className="relative">
+                    <Search className="absolute left-3 top-3 h-5 w-5 text-primary" />
+                    <Input 
+                      placeholder="Search books..." 
+                      className="pl-10 h-12 bg-white text-foreground rounded-xl border-none shadow-sm focus-visible:ring-white"
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        if (e.target.value) setView("books");
+                      }}
+                    />
+                  </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 pt-2">
                 <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-none backdrop-blur-md rounded-xl h-14" onClick={() => setView("books")}>
                   <Library className="h-5 w-5 mr-2" /> Collection
                 </Button>
@@ -271,7 +289,11 @@ export default function LibraryPage() {
             </CardContent>
           </Card>
 
-          <h3 className="font-bold text-lg">Browse Categories</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-lg">Browse Categories</h3>
+            <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+          </div>
+          
           <div className="grid grid-cols-2 gap-4">
             {categories.map((cat) => (
               <Button 
@@ -316,7 +338,7 @@ export default function LibraryPage() {
           <div className="relative">
             <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
             <Input 
-              placeholder="Search 1,000+ titles by name or author..." 
+              placeholder="Search 2,000+ titles by name or author..." 
               className="pl-10 h-12 bg-white rounded-xl border-none shadow-sm focus-visible:ring-primary"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -402,7 +424,7 @@ export default function LibraryPage() {
         {filteredBooks.length === 0 && (
           <div className="text-center py-24 space-y-4">
             <Library className="h-16 w-16 text-muted/30 mx-auto" />
-            <p className="text-muted-foreground">No matches found in the 1,000 title collection.</p>
+            <p className="text-muted-foreground">No matches found in the 2,000 title collection.</p>
           </div>
         )}
       </div>
