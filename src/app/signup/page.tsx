@@ -32,8 +32,8 @@ export default function SignupPage() {
         username: formData.username,
         phoneNumber: formData.phoneNumber,
         pin: formData.pin,
-        accountNumber: "ACC" + Math.floor(1000000000 + Math.random() * 9000000000).toString(),
-        balance: 5000.00, // Initial sign up bonus
+        accountNumber: "CR" + Math.floor(1000000000 + Math.random() * 9000000000).toString(),
+        balance: 0.00, // Explicitly 0.00 - user must fund account manually
       });
       toast({
         title: "Account Created",

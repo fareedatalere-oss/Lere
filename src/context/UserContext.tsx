@@ -95,7 +95,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const fullUser = { 
         ...userData, 
         id: uid,
-        balance: 0.00, // No more fake/mock bonus. Users must fund their own accounts.
+        balance: 0.00, // No starting bonus - balance must be funded by user
         createdAt: new Date().toISOString(),
         myReferralCode: "LERE" + Math.floor(1000 + Math.random() * 9000)
       };

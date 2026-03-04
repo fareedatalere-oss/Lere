@@ -8,18 +8,36 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import Link from "next/link";
-import { Phone, Lock } from "lucide-react";
+import { Phone, Lock, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [pin, setPin] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = useUser();
   const router = useRouter();
+  const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    login(phoneNumber, pin);
-    router.push("/dashboard");
+    setIsSubmitting(true);
+    try {
+      await login(phoneNumber, pin);
+      toast({
+        title: "Login Successful",
+        description: "Welcome back to Lere Connect!",
+      });
+      router.push("/dashboard");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: "Incorrect phone number or transaction PIN.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -42,6 +60,7 @@ export default function LoginPage() {
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   required
+                  disabled={isSubmitting}
                 />
               </div>
             </div>
@@ -57,10 +76,12 @@ export default function LoginPage() {
                   value={pin}
                   onChange={(e) => setPin(e.target.value)}
                   required
+                  disabled={isSubmitting}
                 />
               </div>
             </div>
-            <Button type="submit" className="w-full h-12 text-lg mt-4 bg-primary hover:bg-primary/90">
+            <Button type="submit" className="w-full h-12 text-lg mt-4 bg-primary hover:bg-primary/90" disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Login
             </Button>
           </form>

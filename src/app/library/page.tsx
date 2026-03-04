@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -49,7 +48,7 @@ interface Book {
   cover: string;
 }
 
-const generate2000Books = (): Book[] => {
+const generate1000Books = (): Book[] => {
   const books: Book[] = [];
   const categories: Category[] = [
     "Science", "ICT", "Qur'an", "Hadiths", "Islam", "Christian", 
@@ -61,101 +60,68 @@ const generate2000Books = (): Book[] => {
     "Science": [
       "Physics Fundamentals", "Quantum Mechanics", "Organic Chemistry", "Evolutionary Biology", 
       "Astrophysics", "Genetics Today", "Neuroscience Intro", "General Relativity", 
-      "Chemical Engineering", "Botany Studies", "Nuclear Physics", "Marine Biology", 
-      "Theoretical Physics", "Geology Basics", "Molecular Biology", "Entomology Guide",
-      "Thermodynamics for Beginners", "Astronomy Explorer", "Climatology Reports"
+      "Chemical Engineering", "Botany Studies", "Nuclear Physics", "Marine Biology"
     ],
     "ICT": [
       "Cloud Architecture", "Python for Data", "Cybersecurity Shield", "React Native Pro", 
       "AI & Ethics", "Blockchain Ledger", "UI/UX Mastery", "System Design", 
-      "Networking Basics", "Database Management", "Kubernetes in Action", "Frontend Wizardry",
-      "Backend Scalability", "Machine Learning Ops", "DevOps Handbook", "Swift UI Patterns",
-      "Go Programming", "Rust Systems", "Edge Computing"
+      "Networking Basics", "Database Management", "Kubernetes", "Web3 Development"
     ],
     "Qur'an": [
       "Surah Al-Baqarah Study", "The Noble Qur'an", "Tajweed Guide", "Tafsir Al-Jalalayn", 
-      "Qur'anic Arabic", "Chronology of Revelation", "Verses of Wisdom", "The Holy Message", 
-      "Qur'an Recitation", "Linguistic Miracles", "Divine Guidance", "Light of Faith",
-      "Qur'anic Stories", "Message of Peace", "The Final Testament", "Guidance for Humanity"
+      "Qur'anic Arabic", "Chronology of Revelation", "Verses of Wisdom", "The Holy Message"
     ],
     "Hadiths": [
       "Sahih Al-Bukhari Vol", "Sahih Muslim Gems", "Riyadh as-Salihin", "40 Hadith Nawawi", 
-      "Sunan Abi Dawud", "Hadith Science", "The Prophetic Way", "Authentic Narrations", 
-      "Ethics in Hadith", "Daily Adhkar", "Sayings of Muhammad", "The Sunnah Code",
-      "Golden Chains", "Hadith Methodology", "Path to Paradise", "Wisdom of the Prophet"
+      "Sunan Abi Dawud", "Hadith Science", "The Prophetic Way", "Authentic Narrations"
     ],
     "Islam": [
       "Fiqh of Worship", "Islamic History", "Lives of Prophets", "Sufism Insights", 
-      "Hajj & Umrah Guide", "Zakat Principles", "Islamic Law", "Philosophy of Deen", 
-      "Great Scholars", "Modern Islamic Thought", "The Pillars of Islam", "Islamic Civilization",
-      "Muslim Spain", "Ottoman Empire", "The Caliphate Legacy", "Sharia Principles"
+      "Hajj & Umrah Guide", "Zakat Principles", "Islamic Law", "Philosophy of Deen"
     ],
     "Christian": [
       "The Holy Bible (KJV)", "New Testament Study", "Psalms & Proverbs", "Church History", 
-      "Systematic Theology", "Gospel Analysis", "Old Testament Kings", "Epistles of Paul", 
-      "Biblical Prophecy", "Christian Ethics", "Walk with Christ", "The Reformation",
-      "Orthodox Traditions", "Catholic Catechism", "Global Missions", "The Word of God"
+      "Systematic Theology", "Gospel Analysis", "Old Testament Kings", "Epistles of Paul"
     ],
     "History": [
       "African Kingdoms", "Ancient Rome", "The Industrial Era", "World War II Docs", 
-      "Medieval Europe", "Cold War Secrets", "Ancient Egypt", "History of Nigeria", 
-      "The Renaissance", "Global Revolutions", "Silk Road Traders", "Mughal Empire",
-      "Aztec Civilization", "The Great Depression", "Modern Age History", "Viking Sagas"
+      "Medieval Europe", "Cold War Secrets", "Ancient Egypt", "History of Nigeria"
     ],
     "Laws": [
       "Constitutional Law", "Criminal Justice", "International Treaties", "Human Rights Law", 
-      "Corporate Legalities", "Environmental Acts", "Legal Ethics", "Property Law", 
-      "Civil Rights History", "Global Jurisprudence", "Intellectual Property", "Family Law",
-      "Maritime Law", "Labor Standards", "The Bill of Rights", "Constitutional Drafting"
+      "Corporate Legalities", "Environmental Acts", "Legal Ethics", "Property Law"
     ],
     "Philosophy": [
       "Meditations on Existence", "The Republic Study", "Beyond Good and Evil", "The Art of War", 
-      "Critique of Pure Reason", "Eastern Wisdom", "Logic & Reason", "Existentialism Intro", 
-      "The Social Contract", "Ethics of Antiquity", "Stoic Resilience", "Plato's Dialogues",
-      "Aristotle's Logic", "Nihilism Explored", "Zen Philosophy", "Metaphysical Inquiries"
+      "Critique of Pure Reason", "Eastern Wisdom", "Logic & Reason", "Existentialism Intro"
     ],
     "Literature": [
       "Classic Poetry", "Shakespeare's Sonnets", "Modernist Prose", "The Odyssey Retold", 
-      "Anthology of Drama", "Victorian Novels", "Symbolist Movement", "The Epic of Gilgamesh", 
-      "Gothic Fiction", "Post-Colonial Tales", "Beowulf Translation", "Russian Realism",
-      "Magic Realism", "African Literature", "Beat Generation Poetry", "The Great Novels"
+      "Anthology of Drama", "Victorian Novels", "Symbolist Movement", "The Epic of Gilgamesh"
     ],
     "Arts": [
       "Renaissance Masters", "Abstract Expressionism", "History of Sculpture", "Musical Theory", 
-      "Cinema Esthetics", "Architectural Wonders", "The Color Theory", "Gothic Art", 
-      "Impressionist Light", "Digital Art Evolution", "Cubism Movement", "Baroque Design",
-      "Photography Art", "Surrealist Dreams", "Ancient Pottery", "Modern Design"
+      "Cinema Esthetics", "Architectural Wonders", "The Color Theory", "Gothic Art"
     ],
     "Biographies": [
       "Nelson Mandela: A Long Walk", "Steve Jobs: The Visionary", "Malala: The Voice", 
-      "Einstein: The Genius", "Marie Curie: Radiation", "Malcolm X: Legacy", 
-      "Da Vinci: The Polymath", "Cleopatra: Queen", "Lincoln: The Unifier", 
-      "Mao: The Revolution", "Churchill: The Bulldog", "Frida Kahlo: Spirit",
-      "Martin Luther King Jr.", "Alexander the Great", "Catherine the Great", "Isaac Newton"
+      "Einstein: The Genius", "Marie Curie: Radiation", "Malcolm X: Legacy"
     ],
     "Economics": [
-      "The Wealth of Nations", "Capital in 21st Century", "Macroeconomics Intro", "Stock Market Mastery",
-      "Behavioral Economics", "Global Trade Policy", "The Fed & Money", "Corporate Finance",
-      "Game Theory Basics", "Economic History", "Crypto Economy", "Venture Capital",
-      "Taxation Law", "Poverty & Progress", "Microfinance impact", "Econometrics"
+      "Wealth of Nations", "Capital in 21st Century", "Macroeconomics", "Stock Market Mastery",
+      "Behavioral Economics", "Global Trade Policy", "Digital Currency", "Asset Management"
     ],
     "Health": [
-      "Human Anatomy", "Nutrition Science", "Mental Wellness", "First Aid Manual",
-      "Cardiology Intro", "Public Health Policy", "Yoga & Health", "The Immune System",
-      "Pharmacology", "Alternative Medicine", "Global Pandemics", "Sleep Science",
-      "Geriatric Care", "Pediatric Health", "Fitness Biology", "Virology"
+      "Anatomy for Students", "Nutrition Science", "Mental Wellness", "Medical Ethics",
+      "Public Health Systems", "Geriatrics Guide", "Pediatric Care", "Virology Today"
     ],
     "Psychology": [
-      "Interpretation of Dreams", "Cognitive Behavioral", "Social Psychology", "Child Development",
-      "Clinical Psychiatry", "Memory & Learning", "Emotions & Logic", "Personality Types",
-      "Group Dynamics", "Forensic Psychology", "Positive Psychology", "Intelligence Testing",
-      "Habit Formation", "Dark Psychology", "Spiritual Healing", "Neuropsychology"
+      "Interpretation of Dreams", "Behavioral Therapy", "Social Dynamics", "Child Psychology",
+      "Cognitive Science", "Personality Traits", "Emotional Intelligence", "Healing Trauma"
     ],
     "Engineering": [
-      "Civil Engineering", "Mechanical Dynamics", "Electrical Circuits", "Aerospace Design",
-      "Robotics Intro", "Software Engineering", "Renewable Energy", "Bridge Construction",
-      "Auto Engineering", "Materials Science", "Fluid Mechanics", "Thermodynamics",
-      "Nanotechnology", "Urban Planning", "Safety Protocols", "Structural Analysis"
+      "Civil Engineering", "Mechanical Dynamics", "Electrical Circuits", "Aero Design",
+      "Structural Integrity", "Robotics Intro", "Renewable Energy", "Material Science"
     ],
     "All": []
   };
@@ -163,12 +129,10 @@ const generate2000Books = (): Book[] => {
   const authors = [
     "Dr. Ahmed Lere", "Prof. Jane Smith", "Imam Malik", "Justice Roberts", 
     "Scholar John", "Apostle Paul", "Historian Musa", "Barrister Bello", 
-    "Dr. Sarah", "Sheikh Ibrahim", "Dr. Marcus Aurelius", "Homer", 
-    "William Shakespeare", "Karl Marx", "Adam Smith", "Sigmund Freud",
-    "Marie Curie", "Nikola Tesla", "Ibn Khaldun", "Avicenna"
+    "Dr. Sarah", "Sheikh Ibrahim", "Dr. Marcus Aurelius", "Homer"
   ];
 
-  for (let i = 1; i <= 2000; i++) {
+  for (let i = 1; i <= 1000; i++) {
     const cat = categories[i % categories.length];
     const templates = categoryTemplates[cat];
     const template = templates[i % templates.length];
@@ -179,13 +143,13 @@ const generate2000Books = (): Book[] => {
       author: authors[i % authors.length],
       category: cat,
       parts: (i % 100) + 1,
-      cover: `https://picsum.photos/seed/worldbook${i}/200/300`
+      cover: `https://picsum.photos/seed/book${i}/200/300`
     });
   }
   return books;
 };
 
-const MASTER_LIBRARY = generate2000Books();
+const MASTER_LIBRARY = generate1000Books();
 
 export default function LibraryPage() {
   const router = useRouter();
@@ -227,7 +191,7 @@ export default function LibraryPage() {
   const loadMore = () => {
     setIsLoadingMore(true);
     setTimeout(() => {
-      setVisibleCount(prev => Math.min(prev + 100, filteredBooks.length));
+      setVisibleCount(prev => Math.min(prev + 50, filteredBooks.length));
       setIsLoadingMore(false);
     }, 500);
   };
@@ -260,9 +224,9 @@ export default function LibraryPage() {
             </div>
             <CardContent className="p-8 space-y-4">
               <div className="space-y-2">
-                <Badge className="bg-white/20 text-white border-none mb-2">2,000+ Unique Titles</Badge>
+                <Badge className="bg-white/20 text-white border-none mb-2">1,000 Verified Titles</Badge>
                 <h2 className="text-3xl font-bold">World Knowledge</h2>
-                <p className="text-primary-foreground/80">Search 2,000 books instantly.</p>
+                <p className="text-primary-foreground/80">Search 1,000 unique books instantly.</p>
               </div>
               <div className="pt-2">
                  <div className="relative">
@@ -338,7 +302,7 @@ export default function LibraryPage() {
           <div className="relative">
             <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
             <Input 
-              placeholder="Search 2,000+ titles by name or author..." 
+              placeholder="Search 1,000+ titles by name or author..." 
               className="pl-10 h-12 bg-white rounded-xl border-none shadow-sm focus-visible:ring-primary"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -424,7 +388,7 @@ export default function LibraryPage() {
         {filteredBooks.length === 0 && (
           <div className="text-center py-24 space-y-4">
             <Library className="h-16 w-16 text-muted/30 mx-auto" />
-            <p className="text-muted-foreground">No matches found in the 2,000 title collection.</p>
+            <p className="text-muted-foreground">No matches found in the 1,000 title collection.</p>
           </div>
         )}
       </div>
