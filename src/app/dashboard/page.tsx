@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -41,10 +42,12 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
+import { FirestorePermissionError } from "@/firebase/errors";
+import { errorEmitter } from "@/firebase/error-emitter";
 
 export default function Dashboard() {
-  const { user, logout, isLoading } = useUser();
-  const { firestore } = useFirebase();
+  const { user, logout, isLoading: isUserLoading } = useUser();
+  const { firestore, user: firebaseUser, isUserLoading: isFirebaseLoading } = useFirebase();
   const router = useRouter();
   const [isCalling, setIsCalling] = useState<{ 
     isOpen: boolean; 
@@ -57,14 +60,14 @@ export default function Dashboard() {
   const [incomingCall, setIncomingCall] = useState<any>(null);
 
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!isUserLoading && !user) {
       router.push("/login");
     }
-  }, [user, isLoading, router]);
+  }, [user, isUserLoading, router]);
 
-  // Listen for incoming calls
+  // Listen for incoming calls - only when both local user and firebase auth are ready
   useEffect(() => {
-    if (!firestore || !user) return;
+    if (!firestore || !user || !firebaseUser) return;
 
     const callsRef = collection(firestore, "calls");
     const q = query(
@@ -79,12 +82,19 @@ export default function Dashboard() {
           setIncomingCall({ id: change.doc.id, ...change.doc.data() });
         }
       });
+    }, async (error) => {
+      // Specialized error handling for permission issues
+      const permissionError = new FirestorePermissionError({
+        path: "calls",
+        operation: 'list',
+      });
+      errorEmitter.emit('permission-error', permissionError);
     });
 
     return () => unsubscribe();
-  }, [firestore, user]);
+  }, [firestore, user, firebaseUser]);
 
-  if (isLoading) {
+  if (isUserLoading || isFirebaseLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
