@@ -32,7 +32,10 @@ import {
   Wifi,
   Smartphone,
   Send,
-  Grid
+  Grid,
+  Zap,
+  Tv,
+  GraduationCap
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CallInterface } from "@/components/CallInterface";
@@ -216,7 +219,7 @@ export default function Dashboard() {
 
         <IceBreaker />
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           <Button variant="outline" className="h-24 flex flex-col gap-1 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all" onClick={() => router.push("/actions/watch")}>
             <div className="w-8 h-8 bg-yellow-50 rounded-full flex items-center justify-center">
               <PlayCircle className="h-4 w-4 text-yellow-600" />
@@ -252,6 +255,27 @@ export default function Dashboard() {
             <span className="text-[10px] font-bold uppercase text-center">Send Money</span>
           </Button>
 
+          <Button variant="outline" className="h-24 flex flex-col gap-1 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all" onClick={() => router.push("/actions/electric-bills")}>
+            <div className="w-8 h-8 bg-orange-50 rounded-full flex items-center justify-center">
+              <Zap className="h-4 w-4 text-orange-600" />
+            </div>
+            <span className="text-[10px] font-bold uppercase text-center">Electric Bills</span>
+          </Button>
+
+          <Button variant="outline" className="h-24 flex flex-col gap-1 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all" onClick={() => router.push("/actions/tv-subscription")}>
+            <div className="w-8 h-8 bg-red-50 rounded-full flex items-center justify-center">
+              <Tv className="h-4 w-4 text-red-600" />
+            </div>
+            <span className="text-[10px] font-bold uppercase text-center">TV Subscription</span>
+          </Button>
+
+          <Button variant="outline" className="h-24 flex flex-col gap-1 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all" onClick={() => router.push("/actions/exams-pin")}>
+            <div className="w-8 h-8 bg-purple-50 rounded-full flex items-center justify-center">
+              <GraduationCap className="h-4 w-4 text-purple-600" />
+            </div>
+            <span className="text-[10px] font-bold uppercase text-center">Exams Pin</span>
+          </Button>
+
           <Button variant="outline" className="h-24 flex flex-col gap-1 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all" onClick={() => router.push("/actions/buy-number")}>
             <div className="w-8 h-8 bg-secondary/10 rounded-full flex items-center justify-center">
               <Hash className="h-4 w-4 text-secondary" />
@@ -271,13 +295,6 @@ export default function Dashboard() {
               <BookOpen className="h-4 w-4 text-secondary" />
             </div>
             <span className="text-[10px] font-bold uppercase text-center">Library</span>
-          </Button>
-
-          <Button variant="outline" className="h-24 flex flex-col gap-1 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all" onClick={() => router.push("/profile")}>
-            <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center">
-              <User className="h-4 w-4 text-slate-600" />
-            </div>
-            <span className="text-[10px] font-bold uppercase text-center">Profile</span>
           </Button>
 
           <Button variant="outline" className="h-24 flex flex-col gap-1 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all" onClick={() => router.push("/actions/contact")}>
