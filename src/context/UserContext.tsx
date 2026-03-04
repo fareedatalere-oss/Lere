@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
@@ -9,7 +8,16 @@ import {
   signOut,
   onAuthStateChanged
 } from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { 
+  doc, 
+  setDoc, 
+  getDoc, 
+  collection, 
+  query, 
+  where, 
+  getDocs,
+  limit 
+} from "firebase/firestore";
 
 interface User {
   id?: string;
@@ -18,6 +26,8 @@ interface User {
   accountNumber: string;
   balance: number;
   pin: string;
+  createdAt?: string;
+  myReferralCode?: string;
 }
 
 interface UserContextType {
@@ -64,6 +74,20 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const safePhone = sanitizePhoneNumberForEmail(userData.phoneNumber);
       if (!safePhone) throw new Error("Invalid phone number");
 
+      // Check for existing phone number
+      const phoneQuery = query(collection(firestore, "users"), where("phoneNumber", "==", userData.phoneNumber), limit(1));
+      const phoneSnapshot = await getDocs(phoneQuery);
+      if (!phoneSnapshot.empty) {
+        throw new Error("This phone number is already registered.");
+      }
+
+      // Check for existing username
+      const usernameQuery = query(collection(firestore, "users"), where("username", "==", userData.username), limit(1));
+      const usernameSnapshot = await getDocs(usernameQuery);
+      if (!usernameSnapshot.empty) {
+        throw new Error("This username is already taken.");
+      }
+
       const email = `${safePhone}@lereconnect.com`;
       const password = `pin_${userData.pin}_safe`; 
       
@@ -77,7 +101,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         myReferralCode: "LERE" + Math.floor(1000 + Math.random() * 9000)
       };
       
-      // Save to Firestore first before navigation
       await setDoc(doc(firestore, "users", uid), fullUser);
       setUser(fullUser);
     } catch (error) {

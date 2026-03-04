@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import Link from "next/link";
-import { User, Phone, Lock, Hash, Star } from "lucide-react";
+import { User, Phone, Lock, Hash, Star, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -18,19 +19,36 @@ export default function SignupPage() {
     password: "",
     referralCode: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { signup } = useUser();
   const router = useRouter();
+  const { toast } = useToast();
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    signup({
-      username: formData.username,
-      phoneNumber: formData.phoneNumber,
-      pin: formData.pin,
-      accountNumber: "ACC" + Math.floor(1000000000 + Math.random() * 9000000000).toString(),
-      balance: 5000.00, // Initial sign up bonus
-    });
-    router.push("/dashboard");
+    setIsSubmitting(true);
+    try {
+      await signup({
+        username: formData.username,
+        phoneNumber: formData.phoneNumber,
+        pin: formData.pin,
+        accountNumber: "ACC" + Math.floor(1000000000 + Math.random() * 9000000000).toString(),
+        balance: 5000.00, // Initial sign up bonus
+      });
+      toast({
+        title: "Account Created",
+        description: "Welcome to Lere Connect!",
+      });
+      router.push("/dashboard");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: error.message || "An error occurred during signup.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,21 +68,21 @@ export default function SignupPage() {
               <Label htmlFor="username">Username</Label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input id="username" placeholder="johndoe" className="pl-10" onChange={handleChange} required />
+                <Input id="username" placeholder="johndoe" className="pl-10" onChange={handleChange} required disabled={isSubmitting} />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phoneNumber">Phone Number</Label>
               <div className="relative">
                 <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input id="phoneNumber" placeholder="08012345678" className="pl-10" onChange={handleChange} required />
+                <Input id="phoneNumber" placeholder="08012345678" className="pl-10" onChange={handleChange} required disabled={isSubmitting} />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input id="password" type="password" placeholder="********" className="pl-10" onChange={handleChange} required />
+                <Input id="password" type="password" placeholder="********" className="pl-10" onChange={handleChange} required disabled={isSubmitting} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -72,18 +90,19 @@ export default function SignupPage() {
                 <Label htmlFor="pin">Transaction PIN</Label>
                 <div className="relative">
                   <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="pin" type="password" placeholder="****" className="pl-10" maxLength={4} onChange={handleChange} required />
+                  <Input id="pin" type="password" placeholder="****" className="pl-10" maxLength={4} onChange={handleChange} required disabled={isSubmitting} />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="referralCode">Referral (Optional)</Label>
                 <div className="relative">
                   <Star className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input id="referralCode" placeholder="ABC123" className="pl-10" onChange={handleChange} />
+                  <Input id="referralCode" placeholder="ABC123" className="pl-10" onChange={handleChange} disabled={isSubmitting} />
                 </div>
               </div>
             </div>
-            <Button type="submit" className="w-full h-12 text-lg mt-4 bg-primary hover:bg-primary/90">
+            <Button type="submit" className="w-full h-12 text-lg mt-4 bg-primary hover:bg-primary/90" disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Sign Up
             </Button>
           </form>

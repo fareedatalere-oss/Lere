@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -95,11 +94,9 @@ export default function Dashboard() {
           const callData = { id: change.doc.id, ...change.doc.data() };
           setIncomingCall(callData);
 
-          // Show browser notification if tab is hidden
           if (document.visibilityState !== 'visible' && Notification.permission === "granted") {
             new Notification(`Incoming ${callData.callType} Call`, {
               body: `${callData.callerId} is calling you on Lere Connect`,
-              icon: '/icons/icon-192x192.png'
             });
           }
         }
@@ -146,7 +143,6 @@ export default function Dashboard() {
 
     setIsValidating(true);
     try {
-      // Check if user is registered in Firestore
       const usersRef = collection(firestore!, "users");
       const q = query(usersRef, where("phoneNumber", "==", targetNumber), limit(1));
       const querySnapshot = await getDocs(q);
@@ -200,7 +196,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-8">
-      {/* Header */}
       <header className="bg-white border-b px-4 py-4 sticky top-0 z-40 shadow-sm">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 shrink-0">
@@ -242,7 +237,6 @@ export default function Dashboard() {
       </header>
 
       <main className="max-w-4xl mx-auto p-4 space-y-6">
-        {/* User Card */}
         <Card className="bg-gradient-to-br from-primary to-primary/80 border-none shadow-xl text-white relative overflow-hidden">
           <div className="absolute right-0 bottom-0 opacity-10 scale-150 rotate-12 pointer-events-none">
              <CreditCard size={200} />
@@ -272,10 +266,8 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* AI Ice-Breaker Tool */}
         <IceBreaker />
 
-        {/* Main Grid Actions */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all group" onClick={() => router.push("/actions/airtime-to-cash")}>
             <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -327,7 +319,6 @@ export default function Dashboard() {
         </div>
       </main>
 
-      {/* Incoming Call Notification */}
       <AlertDialog open={!!incomingCall}>
         <AlertDialogContent className="bg-white border-none shadow-2xl rounded-3xl p-8 flex flex-col items-center">
           <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6 animate-bounce">
@@ -344,19 +335,18 @@ export default function Dashboard() {
               onClick={handleRejectCall}
               className="flex-1 h-14 rounded-2xl border-2 border-red-100 text-red-500 hover:bg-red-50 hover:text-red-600 font-bold"
             >
-              Denie Call
+              Deny
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleAcceptCall}
               className="flex-1 h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold"
             >
-              Pick Up Call
+              Pick Up
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Call UI */}
       <CallInterface 
         isOpen={isCalling.isOpen} 
         type={isCalling.type} 

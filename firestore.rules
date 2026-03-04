@@ -1,110 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
     /**
-     * Lere Connect Security Rules
-     *
-     * PHILOSOPHY:
-     * This ruleset implements a strict ownership and participant-based access model. 
-     * It is designed for rapid prototyping, meaning it enforces "who" can access 
-     * data but is flexible regarding the specific schema of the data fields, 
-     * except for those critical to maintaining security and relational integrity.
-     *
-     * DATA STRUCTURE:
-     * - /users/{userId}: Private user profiles and financial meta-data.
-     * - /users/{userId}/transactions/{transactionId}: Private financial history.
-     * - /calls/{callId}: Shared records for voice and video interactions between two users.
-     *
-     * KEY SECURITY DECISIONS:
-     * 1. User Privacy: User profiles are strictly private. Listing users is disabled 
-     *    to prevent enumeration.
-     * 2. Transaction Integrity: Transactions are nested under the user path and 
-     *    verified against a denormalized 'userId' field to ensure path-data consistency.
-     * 3. Call Collaboration: Calls are accessible only by the 'caller' and 'receiver'. 
-     *    Both participants have update rights to allow for status changes (e.g., 
-     *    marking a call as 'accepted' or 'ended').
-     * 4. Denormalization for Performance: Fields like 'callerId', 'receiverId', and 
-     *    'userId' are required within documents to avoid expensive 'get()' calls 
-     *    during authorization checks.
+     * OPEN SECURITY RULES FOR DEVELOPMENT
+     * Note: This allows anyone to read and write to your database.
+     * In a production app, you should restrict this to authenticated users.
      */
-
-    // --- Global Helper Functions ---
-
-    /** Checks if the request is from an authenticated user. */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /** Checks if the authenticated user's UID matches the provided ID. */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    /** Checks ownership and ensures the document exists for update/delete operations. */
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
-    }
-
-    /** Checks if the user is either the caller or the receiver of a call. */
-    function isCallParticipant(callerId, receiverId) {
-      return isSignedIn() && (request.auth.uid == callerId || request.auth.uid == receiverId);
-    }
-
-    // --- Collection Rules ---
-
-    /**
-     * @description Rules for user profiles. Only the owner can view or modify their profile.
-     * @path /users/{userId}
-     * @allow (create) if auth.uid == userId and data.id == userId
-     * @deny (get) if auth.uid != userId
-     * @principle Enforces strict document ownership and path-to-data consistency.
-     */
-    match /users/{userId} {
-      allow get, list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
-
-      /**
-       * @description Rules for user-specific transactions. Ownership is derived from the parent path.
-       * @path /users/{userId}/transactions/{transactionId}
-       * @allow (list) if auth.uid == userId
-       * @deny (update) if transaction.userId is changed to another user's ID
-       * @principle Uses hierarchical scoping and denormalized field validation for secure listing.
-       */
-      match /transactions/{transactionId} {
-        allow get, list: if isOwner(userId);
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-        allow delete: if isExistingOwner(userId);
-      }
-    }
-
-    /**
-     * @description Rules for call records. Access is restricted to the two participants (caller/receiver).
-     * @path /calls/{callId}
-     * @allow (create) if auth.uid == data.callerId
-     * @allow (update) if auth.uid == resource.data.receiverId (to accept call)
-     * @deny (get) if auth.uid is not callerId or receiverId
-     * @principle Implements Shared Access pattern using denormalized participant IDs.
-     */
-    match /calls/{callId} {
-      allow get: if isSignedIn() && (request.auth.uid == resource.data.callerId || request.auth.uid == resource.data.receiverId);
-      
-      // List operations require a query filter on callerId or receiverId to succeed.
-      allow list: if isSignedIn(); 
-
-      allow create: if isSignedIn() && request.resource.data.callerId == request.auth.uid;
-      
-      allow update: if resource != null && isCallParticipant(resource.data.callerId, resource.data.receiverId) && request.resource.data.callerId == resource.data.callerId && request.resource.data.receiverId == resource.data.receiverId;
-      
-      allow delete: if resource != null && isCallParticipant(resource.data.callerId, resource.data.receiverId);
-    }
-
-    // --- Default Deny ---
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if true;
     }
   }
 }
