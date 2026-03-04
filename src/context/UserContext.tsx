@@ -39,9 +39,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         // Sync with Firestore profile
-        const userDoc = await getDoc(doc(firestore, "users", firebaseUser.uid));
-        if (userDoc.exists()) {
-          setUser(userDoc.data() as User);
+        try {
+          const userDoc = await getDoc(doc(firestore, "users", firebaseUser.uid));
+          if (userDoc.exists()) {
+            setUser(userDoc.data() as User);
+          }
+        } catch (err) {
+          console.error("Error fetching user profile:", err);
         }
       } else {
         setUser(null);
@@ -52,11 +56,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, [auth, firestore]);
 
+  const sanitizePhoneNumberForEmail = (phone: string) => {
+    // Strip everything except digits to prevent invalid email characters like '+' or ' '
+    return phone.replace(/[^0-9]/g, "");
+  };
+
   const signup = async (userData: User) => {
     try {
-      // Use phone number as a dummy email for Firebase Auth
-      const email = `${userData.phoneNumber}@lereconnect.com`;
-      const password = `pin_${userData.pin}_safe`; // Use PIN in password
+      const safePhone = sanitizePhoneNumberForEmail(userData.phoneNumber);
+      if (!safePhone) throw new Error("Invalid phone number");
+
+      const email = `${safePhone}@lereconnect.com`;
+      const password = `pin_${userData.pin}_safe`; 
       
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
@@ -74,10 +85,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (phoneNumber: string, pin: string) => {
     try {
-      const email = `${phoneNumber}@lereconnect.com`;
+      const safePhone = sanitizePhoneNumberForEmail(phoneNumber);
+      if (!safePhone) throw new Error("Invalid phone number");
+
+      const email = `${safePhone}@lereconnect.com`;
       const password = `pin_${pin}_safe`;
       await signInWithEmailAndPassword(auth, email, password);
-      // User state will be updated by onAuthStateChanged
     } catch (error) {
       console.error("Login error:", error);
       throw error;
@@ -85,8 +98,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    await signOut(auth);
-    setUser(null);
+    try {
+      await signOut(auth);
+      setUser(null);
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
 
   return (
