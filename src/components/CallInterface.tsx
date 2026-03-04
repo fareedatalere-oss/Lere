@@ -3,7 +3,18 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Phone, Video, PhoneOff, Mic, MicOff, VideoOff, Volume2, Loader2 } from "lucide-react";
+import { 
+  Phone, 
+  Video, 
+  PhoneOff, 
+  Mic, 
+  MicOff, 
+  VideoOff, 
+  Volume2, 
+  Loader2,
+  CircleStop,
+  Radio
+} from "lucide-react";
 import { useUser } from "@/context/UserContext";
 import { useFirebase } from "@/firebase";
 import { 
@@ -16,7 +27,7 @@ import {
   updateDoc,
   serverTimestamp 
 } from "firebase/firestore";
-import Image from "next/image";
+import { useToast } from "@/hooks/use-toast";
 
 interface CallInterfaceProps {
   type: "voice" | "video";
@@ -38,11 +49,13 @@ const servers = {
 export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallId }: CallInterfaceProps) {
   const { user } = useUser();
   const { firestore } = useFirebase();
+  const { toast } = useToast();
+  
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [callStatus, setCallStatus] = useState<string>("Connecting...");
-  const [hasCameraPermission, setHasCameraPermission] = useState(true);
+  const [isRecording, setIsRecording] = useState(false);
 
   const pc = useRef<RTCPeerConnection | null>(null);
   const localStream = useRef<MediaStream | null>(null);
@@ -50,6 +63,8 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const callDocRef = useRef<any>(null);
+  const mediaRecorder = useRef<MediaRecorder | null>(null);
+  const recordedChunks = useRef<Blob[]>([]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -71,6 +86,7 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
   }, [isOpen, firestore, user]);
 
   const cleanup = () => {
+    if (isRecording) stopRecording();
     if (localStream.current) {
       localStream.current.getTracks().forEach(track => track.stop());
     }
@@ -116,36 +132,35 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
       if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream.current;
 
       if (incomingCallId) {
-        // Handle Answer Mode
+        // Answer Mode
         const callDoc = doc(firestore, "calls", incomingCallId);
         callDocRef.current = callDoc;
         
         onSnapshot(callDoc, (snapshot) => {
           const data = snapshot.data();
-          if (data?.status === 'ended') {
+          if (data?.status === 'ended' || data?.status === 'rejected') {
             onClose();
           }
         });
 
-        const offerDescription = (await (await getDocs(collection(callDoc, "offer"))).docs[0]?.data())?.sdp;
-        if (!offerDescription) {
-          // Alternative: offer is on the doc itself
-          const data = (await (await getDocs(collection(firestore, "calls"))).docs.find(d => d.id === incomingCallId))?.data();
-          if (data?.offer) {
-            await pc.current.setRemoteDescription(new RTCSessionDescription(data.offer));
-            const answerDescription = await pc.current.createAnswer();
-            await pc.current.setLocalDescription(answerDescription);
-            const answer = { type: answerDescription.type, sdp: answerDescription.sdp };
-            await updateDoc(callDoc, { answer, status: 'accepted' });
-          }
+        const callSnapshot = await getDocs(collection(callDoc, "offer"));
+        const offerData = callSnapshot.docs[0]?.data();
+        
+        if (offerData) {
+          await pc.current.setRemoteDescription(new RTCSessionDescription(offerData));
+          const answerDescription = await pc.current.createAnswer();
+          await pc.current.setLocalDescription(answerDescription);
+          await updateDoc(callDoc, { 
+            answer: { type: answerDescription.type, sdp: answerDescription.sdp },
+            status: 'accepted'
+          });
         }
 
         const callerCandidates = collection(callDoc, "callerCandidates");
         onSnapshot(callerCandidates, (snapshot) => {
           snapshot.docChanges().forEach((change) => {
             if (change.type === "added" && pc.current) {
-              const data = change.doc.data();
-              pc.current.addIceCandidate(new RTCIceCandidate(data));
+              pc.current.addIceCandidate(new RTCIceCandidate(change.doc.data()));
             }
           });
         });
@@ -158,7 +173,7 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
 
         setCallStatus("Connected");
       } else if (receiverId) {
-        // Handle Call Mode
+        // Call Mode
         const callDoc = doc(collection(firestore, "calls"));
         callDocRef.current = callDoc;
 
@@ -171,25 +186,22 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
         const offerDescription = await pc.current.createOffer();
         await pc.current.setLocalDescription(offerDescription);
 
-        const offer = {
-          sdp: offerDescription.sdp,
-          type: offerDescription.type,
-        };
-
         await setDoc(callDoc, { 
-          offer, 
           status: 'ringing', 
           callerId: user.phoneNumber, 
           receiverId, 
           callType: type,
           startTime: serverTimestamp() 
         });
+        await addDoc(collection(callDoc, "offer"), {
+          type: offerDescription.type,
+          sdp: offerDescription.sdp
+        });
 
         onSnapshot(callDoc, (snapshot) => {
           const data = snapshot.data();
           if (data?.answer && pc.current && !pc.current.currentRemoteDescription) {
-            const answerDescription = new RTCSessionDescription(data.answer);
-            pc.current.setRemoteDescription(answerDescription);
+            pc.current.setRemoteDescription(new RTCSessionDescription(data.answer));
             setCallStatus("Connected");
           }
           if (data?.status === 'ended' || data?.status === 'rejected') {
@@ -201,8 +213,7 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
         onSnapshot(receiverCandidates, (snapshot) => {
           snapshot.docChanges().forEach((change) => {
             if (change.type === "added" && pc.current) {
-              const data = change.doc.data();
-              pc.current.addIceCandidate(new RTCIceCandidate(data));
+              pc.current.addIceCandidate(new RTCIceCandidate(change.doc.data()));
             }
           });
         });
@@ -211,7 +222,53 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
     } catch (error) {
       console.error("WebRTC Error:", error);
       setCallStatus("Error connecting");
-      setHasCameraPermission(false);
+      toast({
+        variant: "destructive",
+        title: "Call Failed",
+        description: "Could not establish connection. Check permissions.",
+      });
+    }
+  };
+
+  const startRecording = () => {
+    if (!localStream.current || !remoteStream.current) return;
+
+    const combinedStream = new MediaStream([
+      ...localStream.current.getTracks(),
+      ...remoteStream.current.getTracks()
+    ]);
+
+    const options = { mimeType: type === 'video' ? 'video/webm' : 'audio/webm' };
+    mediaRecorder.current = new MediaRecorder(combinedStream, options);
+    
+    mediaRecorder.current.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        recordedChunks.current.push(event.data);
+      }
+    };
+
+    mediaRecorder.current.onstop = () => {
+      const blob = new Blob(recordedChunks.current, { 
+        type: type === 'video' ? 'video/webm' : 'audio/webm' 
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `LereConnect_${type}_${new Date().getTime()}.webm`;
+      a.click();
+      recordedChunks.current = [];
+    };
+
+    mediaRecorder.current.start();
+    setIsRecording(true);
+    toast({ title: "Recording Started", description: "Your call is being recorded." });
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder.current && isRecording) {
+      mediaRecorder.current.stop();
+      setIsRecording(false);
+      toast({ title: "Recording Saved", description: "File saved to your device." });
     }
   };
 
@@ -242,10 +299,13 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
       <div className="relative w-full max-w-2xl h-full flex flex-col items-center">
         {/* Call Info */}
         <div className="absolute top-10 text-center z-20 w-full">
-          <h2 className="text-white text-3xl font-bold mb-2">{receiverId || "Connected User"}</h2>
-          <p className="text-secondary font-medium tracking-widest uppercase text-sm">
-            {callStatus}
-          </p>
+          <h2 className="text-white text-3xl font-bold mb-2">{receiverId || "Lere User"}</h2>
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-secondary font-medium tracking-widest uppercase text-sm">
+              {callStatus}
+            </span>
+            {isRecording && <Radio className="h-4 w-4 text-red-500 animate-pulse" />}
+          </div>
           <p className="text-white/60 mt-2 font-mono">{formatTime(callDuration)}</p>
         </div>
 
@@ -276,50 +336,56 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
                   <Phone className="h-16 w-16 text-white" />
                 </div>
               </div>
-              <p className="text-white/50 text-sm">Encrypted Connection</p>
               <audio ref={remoteVideoRef} autoPlay />
             </div>
           )}
         </div>
 
         {/* Controls */}
-        <div className="w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/10 rounded-full p-6 my-10 flex items-center justify-evenly shadow-xl">
-          <Button
-            variant="ghost"
-            size="icon"
-            className={`h-14 w-14 rounded-full transition-all ${isMuted ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
-            onClick={toggleMute}
-          >
-            {isMuted ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
-          </Button>
-
-          {type === "video" && (
+        <div className="w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/10 rounded-3xl p-6 my-10 flex flex-col items-center gap-6 shadow-xl">
+          <div className="flex items-center justify-evenly w-full">
             <Button
               variant="ghost"
               size="icon"
-              className={`h-14 w-14 rounded-full transition-all ${isVideoOff ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-white/10 hover:bg-white/20 text-white'}`}
-              onClick={toggleVideo}
+              className={`h-14 w-14 rounded-full transition-all ${isMuted ? 'bg-red-500 text-white' : 'bg-white/10 text-white'}`}
+              onClick={toggleMute}
             >
-              {isVideoOff ? <VideoOff className="h-6 w-6" /> : <Video className="h-6 w-6" />}
+              {isMuted ? <MicOff /> : <Mic />}
             </Button>
-          )}
 
-          <Button
-            variant="destructive"
-            size="icon"
-            className="h-16 w-16 rounded-full shadow-lg hover:scale-105 transition-transform"
-            onClick={onClose}
-          >
-            <PhoneOff className="h-8 w-8" />
-          </Button>
+            {type === "video" && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`h-14 w-14 rounded-full transition-all ${isVideoOff ? 'bg-red-500 text-white' : 'bg-white/10 text-white'}`}
+                onClick={toggleVideo}
+              >
+                {isVideoOff ? <VideoOff /> : <Video />}
+              </Button>
+            )}
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-14 w-14 rounded-full bg-white/10 hover:bg-white/20 text-white"
-          >
-            <Volume2 className="h-6 w-6" />
-          </Button>
+            <Button
+              variant="destructive"
+              size="icon"
+              className="h-16 w-16 rounded-full shadow-lg hover:scale-105 transition-transform"
+              onClick={onClose}
+            >
+              <PhoneOff className="h-8 w-8" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-14 w-14 rounded-full transition-all ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-white/10 text-white'}`}
+              onClick={isRecording ? stopRecording : startRecording}
+            >
+              {isRecording ? <CircleStop /> : <Radio />}
+            </Button>
+          </div>
+          
+          <p className="text-white/50 text-[10px] uppercase tracking-widest font-bold">
+            {isRecording ? "Recording in progress" : "Secure P2P Connection"}
+          </p>
         </div>
       </div>
     </div>

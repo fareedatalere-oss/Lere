@@ -37,11 +37,11 @@ function SendMoneyContent() {
           <CardContent className="pt-6">
             <form onSubmit={handleSend} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="account">Recipient Account Number</Label>
-                <Input id="account" placeholder="0123456789" required />
+                <Label htmlFor="account">Recipient Credit Input</Label>
+                <Input id="account" placeholder="Enter recipient number" required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="bank">Select Bank</Label>
+                <Label htmlFor="bank">Destination</Label>
                 <Input id="bank" placeholder="Lere Connect Wallet" value="Lere Connect Wallet" disabled />
               </div>
               <div className="space-y-2">

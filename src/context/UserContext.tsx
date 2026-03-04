@@ -38,7 +38,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Sync with Firestore profile
         try {
           const userDoc = await getDoc(doc(firestore, "users", firebaseUser.uid));
           if (userDoc.exists()) {
@@ -57,7 +56,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   }, [auth, firestore]);
 
   const sanitizePhoneNumberForEmail = (phone: string) => {
-    // Strip everything except digits to prevent invalid email characters like '+' or ' '
     return phone.replace(/[^0-9]/g, "");
   };
 
@@ -72,9 +70,14 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const uid = userCredential.user.uid;
       
-      const fullUser = { ...userData, id: uid };
+      const fullUser = { 
+        ...userData, 
+        id: uid,
+        createdAt: new Date().toISOString(),
+        myReferralCode: "LERE" + Math.floor(1000 + Math.random() * 9000)
+      };
       
-      // Save to Firestore
+      // Save to Firestore first before navigation
       await setDoc(doc(firestore, "users", uid), fullUser);
       setUser(fullUser);
     } catch (error) {

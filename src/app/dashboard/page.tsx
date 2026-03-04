@@ -10,7 +10,9 @@ import {
   where, 
   onSnapshot, 
   doc, 
-  updateDoc 
+  updateDoc,
+  getDocs,
+  limit
 } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -61,12 +63,20 @@ export default function Dashboard() {
 
   const [targetNumber, setTargetNumber] = useState("");
   const [incomingCall, setIncomingCall] = useState<any>(null);
+  const [isValidating, setIsValidating] = useState(false);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
       router.push("/login");
     }
   }, [user, isUserLoading, router]);
+
+  // Request Notification Permission
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      Notification.requestPermission();
+    }
+  }, []);
 
   // Listen for incoming calls
   useEffect(() => {
@@ -82,7 +92,16 @@ export default function Dashboard() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
         if (change.type === "added") {
-          setIncomingCall({ id: change.doc.id, ...change.doc.data() });
+          const callData = { id: change.doc.id, ...change.doc.data() };
+          setIncomingCall(callData);
+
+          // Show browser notification if tab is hidden
+          if (document.visibilityState !== 'visible' && Notification.permission === "granted") {
+            new Notification(`Incoming ${callData.callType} Call`, {
+              body: `${callData.callerId} is calling you on Lere Connect`,
+              icon: '/icons/icon-192x192.png'
+            });
+          }
         }
       });
     }, async (error) => {
@@ -106,7 +125,7 @@ export default function Dashboard() {
 
   if (!user) return null;
 
-  const handleStartCall = (type: "voice" | "video") => {
+  const handleStartCall = async (type: "voice" | "video") => {
     if (!targetNumber) {
       toast({
         variant: "destructive",
@@ -125,11 +144,38 @@ export default function Dashboard() {
       return;
     }
 
-    setIsCalling({ 
-      isOpen: true, 
-      type, 
-      receiverId: targetNumber 
-    });
+    setIsValidating(true);
+    try {
+      // Check if user is registered in Firestore
+      const usersRef = collection(firestore!, "users");
+      const q = query(usersRef, where("phoneNumber", "==", targetNumber), limit(1));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        toast({
+          variant: "destructive",
+          title: "Not Registered",
+          description: "This number isn't yet registered with Lere Connect.",
+        });
+        setIsValidating(false);
+        return;
+      }
+
+      setIsCalling({ 
+        isOpen: true, 
+        type, 
+        receiverId: targetNumber 
+      });
+    } catch (err) {
+      console.error("Validation error:", err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to verify number. Please try again.",
+      });
+    } finally {
+      setIsValidating(false);
+    }
   };
 
   const handleAcceptCall = () => {
@@ -166,16 +212,28 @@ export default function Dashboard() {
           
           <div className="flex flex-1 max-w-md items-center gap-2 bg-accent/30 p-1 rounded-full border border-primary/10">
             <Input 
-              placeholder="Who to call?" 
+              placeholder="Enter number..." 
               className="h-9 border-none bg-transparent shadow-none focus-visible:ring-0 text-sm"
               value={targetNumber}
               onChange={(e) => setTargetNumber(e.target.value)}
+              disabled={isValidating}
             />
             <div className="flex gap-1 pr-1">
-              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 text-primary" onClick={() => handleStartCall("voice")}>
-                <Phone className="h-4 w-4" />
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 text-primary" 
+                onClick={() => handleStartCall("voice")}
+                disabled={isValidating}
+              >
+                {isValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone className="h-4 w-4" />}
               </Button>
-              <Button size="sm" className="h-8 px-3 rounded-full bg-primary hover:bg-primary/90 text-[10px] font-bold" onClick={() => handleStartCall("video")}>
+              <Button 
+                size="sm" 
+                className="h-8 px-3 rounded-full bg-primary hover:bg-primary/90 text-[10px] font-bold" 
+                onClick={() => handleStartCall("video")}
+                disabled={isValidating}
+              >
                 <Video className="h-4 w-4 mr-1" /> CALL
               </Button>
             </div>
@@ -207,7 +265,7 @@ export default function Dashboard() {
                 <p className="text-sm font-mono font-medium">{user.phoneNumber}</p>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/5">
-                <p className="text-[10px] uppercase tracking-wider text-white/50 mb-1">Account Number</p>
+                <p className="text-[10px] uppercase tracking-wider text-white/50 mb-1">Credit Input</p>
                 <p className="text-sm font-mono font-medium">{user.accountNumber}</p>
               </div>
             </div>
@@ -286,13 +344,13 @@ export default function Dashboard() {
               onClick={handleRejectCall}
               className="flex-1 h-14 rounded-2xl border-2 border-red-100 text-red-500 hover:bg-red-50 hover:text-red-600 font-bold"
             >
-              Reject
+              Denie Call
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleAcceptCall}
               className="flex-1 h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold"
             >
-              Accept
+              Pick Up Call
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
