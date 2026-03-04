@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,7 +18,9 @@ import {
   BookMarked,
   History as HistoryIcon,
   Gavel,
-  CheckCircle2
+  CheckCircle2,
+  ChevronDown,
+  Loader2
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -34,24 +37,24 @@ interface Book {
   cover: string;
 }
 
-// Function to generate exactly 1000 books across requested categories
+// Comprehensive generator for exactly 1000 unique book entries
 const generate1000Books = (): Book[] => {
   const books: Book[] = [];
   const categories: Category[] = ["Science", "ICT", "Qur'an", "Hadiths", "Islam", "Christian", "History", "Laws"];
   
   const categoryTemplates: Record<Category, string[]> = {
-    "Science": ["Physics Fundamentals", "Quantum Mechanics", "Organic Chemistry", "Evolutionary Biology", "Astrophysics", "Genetics Today", "Neuroscience Intro"],
-    "ICT": ["Cloud Architecture", "Python for Data", "Cybersecurity Shield", "React Native Pro", "AI & Ethics", "Blockchain Ledger", "UI/UX Mastery"],
-    "Qur'an": ["Surah Al-Baqarah Study", "The Noble Qur'an", "Tajweed Guide", "Tafsir Al-Jalalayn", "Qur'anic Arabic", "Chronology of Revelation"],
-    "Hadiths": ["Sahih Al-Bukhari Vol", "Sahih Muslim Gems", "Riyadh as-Salihin", "40 Hadith Nawawi", "Sunan Abi Dawud", "Hadith Science"],
-    "Islam": ["Fiqh of Worship", "Islamic History", "Lives of Prophets", "Sufism Insights", "Hajj & Umrah Guide", "Zakat Principles"],
-    "Christian": ["The Holy Bible (KJV)", "New Testament Study", "Psalms & Proverbs", "Church History", "Systematic Theology", "Gospel Analysis"],
-    "History": ["African Kingdoms", "Ancient Rome", "The Industrial Era", "World War II Docs", "Medieval Europe", "Cold War Secrets"],
-    "Laws": ["Constitutional Law", "Criminal Justice", "International Treaties", "Human Rights Law", "Corporate Legalities", "Environmental Acts"],
+    "Science": ["Physics Fundamentals", "Quantum Mechanics", "Organic Chemistry", "Evolutionary Biology", "Astrophysics", "Genetics Today", "Neuroscience Intro", "General Relativity", "Chemical Engineering", "Botany Studies"],
+    "ICT": ["Cloud Architecture", "Python for Data", "Cybersecurity Shield", "React Native Pro", "AI & Ethics", "Blockchain Ledger", "UI/UX Mastery", "System Design", "Networking Basics", "Database Management"],
+    "Qur'an": ["Surah Al-Baqarah Study", "The Noble Qur'an", "Tajweed Guide", "Tafsir Al-Jalalayn", "Qur'anic Arabic", "Chronology of Revelation", "Verses of Wisdom", "The Holy Message", "Qur'an Recitation", "Linguistic Miracles"],
+    "Hadiths": ["Sahih Al-Bukhari Vol", "Sahih Muslim Gems", "Riyadh as-Salihin", "40 Hadith Nawawi", "Sunan Abi Dawud", "Hadith Science", "The Prophetic Way", "Authentic Narrations", "Ethics in Hadith", "Daily Adhkar"],
+    "Islam": ["Fiqh of Worship", "Islamic History", "Lives of Prophets", "Sufism Insights", "Hajj & Umrah Guide", "Zakat Principles", "Islamic Law", "Philosophy of Deen", "Great Scholars", "Modern Islamic Thought"],
+    "Christian": ["The Holy Bible (KJV)", "New Testament Study", "Psalms & Proverbs", "Church History", "Systematic Theology", "Gospel Analysis", "Old Testament Kings", "Epistles of Paul", "Biblical Prophecy", "Christian Ethics"],
+    "History": ["African Kingdoms", "Ancient Rome", "The Industrial Era", "World War II Docs", "Medieval Europe", "Cold War Secrets", "Ancient Egypt", "History of Nigeria", "The Renaissance", "Global Revolutions"],
+    "Laws": ["Constitutional Law", "Criminal Justice", "International Treaties", "Human Rights Law", "Corporate Legalities", "Environmental Acts", "Legal Ethics", "Property Law", "Civil Rights History", "Global Jurisprudence"],
     "All": []
   };
 
-  const authors = ["Dr. Ahmed Lere", "Prof. Jane Smith", "Imam Malik", "Justice Roberts", "Scholar John", "Apostle Paul", "Historian Musa"];
+  const authors = ["Dr. Ahmed Lere", "Prof. Jane Smith", "Imam Malik", "Justice Roberts", "Scholar John", "Apostle Paul", "Historian Musa", "Barrister Bello", "Dr. Sarah", "Sheikh Ibrahim"];
 
   for (let i = 1; i <= 1000; i++) {
     const cat = categories[i % categories.length];
@@ -60,10 +63,10 @@ const generate1000Books = (): Book[] => {
     
     books.push({
       id: i.toString(),
-      title: `${template} - Part ${Math.ceil(i / 8)}`,
+      title: `${template} - Part ${Math.floor(i / 8) + 1}`,
       author: authors[i % authors.length],
       category: cat,
-      parts: Math.floor(Math.random() * 90) + 10,
+      parts: (i % 100) + 1, // Up to 100 parts
       cover: `https://picsum.photos/seed/book${i}/200/300`
     });
   }
@@ -78,6 +81,8 @@ export default function LibraryPage() {
   const [view, setView] = useState<"landing" | "books">("landing");
   const [selectedCategory, setSelectedCategory] = useState<Category>("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(50);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const categories: { name: Category; icon: any; color: string }[] = [
     { name: "Science", icon: FlaskConical, color: "text-blue-500 bg-blue-50" },
@@ -99,12 +104,25 @@ export default function LibraryPage() {
     });
   }, [selectedCategory, searchQuery]);
 
+  const loadMore = () => {
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      setVisibleCount(prev => Math.min(prev + 100, filteredBooks.length));
+      setIsLoadingMore(false);
+    }, 500);
+  };
+
   const handleGetBook = (title: string) => {
     toast({
       title: "Downloading...",
       description: `${title} is being added to your offline library.`,
     });
   };
+
+  // Reset visible count when search or category changes
+  useEffect(() => {
+    setVisibleCount(50);
+  }, [selectedCategory, searchQuery]);
 
   if (view === "landing") {
     return (
@@ -173,7 +191,7 @@ export default function LibraryPage() {
             <div>
               <h1 className="text-2xl font-bold">World Library</h1>
               <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <CheckCircle2 className="h-3 w-3 text-primary" /> Listing 1,000 available titles
+                <CheckCircle2 className="h-3 w-3 text-primary" /> Listing {MASTER_LIBRARY.length} available titles
               </p>
             </div>
           </div>
@@ -213,8 +231,8 @@ export default function LibraryPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
-          {filteredBooks.slice(0, 50).map((book) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {filteredBooks.slice(0, visibleCount).map((book) => (
             <Card key={book.id} className="border-none shadow-sm hover:shadow-md transition-all overflow-hidden bg-white">
               <div className="flex h-44">
                 <div className="w-32 shrink-0 bg-slate-100 p-2">
@@ -227,7 +245,7 @@ export default function LibraryPage() {
                     </Badge>
                     <h4 className="font-bold text-sm leading-tight line-clamp-2">{book.title}</h4>
                     <p className="text-[10px] text-muted-foreground italic">by {book.author}</p>
-                    <p className="text-[10px] font-medium text-secondary mt-1">{book.parts} Parts Included</p>
+                    <p className="text-[10px] font-medium text-secondary mt-1">{book.parts} Parts Available</p>
                   </div>
                   <Button size="sm" className="w-full bg-primary hover:bg-primary/90 h-8 text-xs font-bold" onClick={() => handleGetBook(book.title)}>
                     <Download className="h-3 w-3 mr-1" /> GET
@@ -236,13 +254,30 @@ export default function LibraryPage() {
               </div>
             </Card>
           ))}
-          
-          {filteredBooks.length > 50 && (
-            <div className="col-span-full text-center py-4">
-              <p className="text-xs text-muted-foreground italic">Showing first 50 results of {filteredBooks.length} titles. Use search to refine.</p>
-            </div>
-          )}
         </div>
+
+        {visibleCount < filteredBooks.length && (
+          <div className="flex justify-center py-8">
+            <Button 
+              onClick={loadMore} 
+              disabled={isLoadingMore} 
+              variant="outline"
+              className="rounded-xl px-8 h-12 border-primary text-primary hover:bg-primary/5"
+            >
+              {isLoadingMore ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Loading Titles...
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-4 w-4 mr-2" />
+                  Show More (Showing {visibleCount} of {filteredBooks.length})
+                </>
+              )}
+            </Button>
+          </div>
+        )}
 
         {filteredBooks.length === 0 && (
           <div className="text-center py-20 space-y-4">
