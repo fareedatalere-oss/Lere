@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -37,6 +36,7 @@ import {
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { generateBookContent } from "@/ai/flows/generate-book-content";
 
 type Category = 
   | "All" | "Science" | "ICT" | "Qur'an" | "Hadiths" | "Islam" | "Christian" 
@@ -100,7 +100,6 @@ const generate1000Books = (): Book[] => {
       category: cat,
       parts: (i % 12) + 1,
       cover: `https://picsum.photos/seed/book${i}/200/300`,
-      content: "This is a comprehensive text covering the fundamental and advanced principles of the subject matter. It serves as a vital resource for scholars and students alike, providing deep insights and analytical frameworks for professional practice."
     });
   }
   return books;
@@ -120,6 +119,7 @@ export default function LibraryPage() {
   const [visibleCount, setVisibleCount] = useState(50);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [quranContent, setQuranContent] = useState<any>(null);
+  const [aiContent, setAiContent] = useState<string | null>(null);
   const [isReaderLoading, setIsReaderLoading] = useState(false);
 
   const categories: { name: Category; icon: any; color: string }[] = [
@@ -164,16 +164,19 @@ export default function LibraryPage() {
   }, [selectedCategory, searchQuery]);
 
   useEffect(() => {
-    if (view === "reader" && selectedSurah) {
-      fetchSurahContent();
+    if (view === "reader") {
+      if (selectedSurah) {
+        fetchSurahContent();
+      } else if (selectedBook) {
+        fetchAiBookContent();
+      }
     }
-  }, [view, selectedSurah, quranType]);
+  }, [view, selectedSurah, selectedBook, quranType]);
 
   const fetchSurahContent = async () => {
     if (!selectedSurah) return;
     setIsReaderLoading(true);
     try {
-      // Map quranType to edition identifiers
       const editionMap: Record<string, string> = {
         "English Subtitles": "en.sahih",
         "Hausa Subtitles": "ha.gumi",
@@ -198,6 +201,24 @@ export default function LibraryPage() {
       });
     } catch (err) {
       toast({ variant: "destructive", title: "API Error", description: "Failed to load Surah content." });
+    } finally {
+      setIsReaderLoading(false);
+    }
+  };
+
+  const fetchAiBookContent = async () => {
+    if (!selectedBook) return;
+    setIsReaderLoading(true);
+    setAiContent(null);
+    try {
+      const content = await generateBookContent({
+        title: selectedBook.title,
+        author: selectedBook.author,
+        category: selectedBook.category,
+      });
+      setAiContent(content);
+    } catch (err) {
+      toast({ variant: "destructive", title: "AI Error", description: "Failed to generate book content." });
     } finally {
       setIsReaderLoading(false);
     }
@@ -234,9 +255,9 @@ export default function LibraryPage() {
             </div>
             <CardContent className="p-8 space-y-4">
               <div className="space-y-2">
-                <Badge className="bg-white/20 text-white border-none mb-2">1,000+ Verified Titles</Badge>
+                <Badge className="bg-white/20 text-white border-none mb-2">AI-Powered Education</Badge>
                 <h2 className="text-3xl font-bold">Search Knowledge</h2>
-                <p className="text-white/80">Qur'an, Hadiths, ICT, Physiology and major educational texts available.</p>
+                <p className="text-white/80">Qur'an, Hadiths, ICT, Physiology and major educational texts available in real-time.</p>
               </div>
               <div className="pt-2">
                  <div className="relative">
@@ -391,6 +412,7 @@ export default function LibraryPage() {
             } else {
               setView("books");
               setSelectedBook(null);
+              setAiContent(null);
             }
           }} className="rounded-full bg-slate-50">
             <ArrowLeft className="h-5 w-5" />
@@ -410,7 +432,9 @@ export default function LibraryPage() {
           {isReaderLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Loader2 className="h-10 w-10 animate-spin text-emerald-600" />
-              <p className="text-sm font-bold text-emerald-600">Retrieving Sacred Text...</p>
+              <p className="text-sm font-bold text-emerald-600">
+                {isQuran ? "Retrieving Sacred Text..." : "AI generating educational content..."}
+              </p>
             </div>
           ) : isQuran && quranContent ? (
             <div className="space-y-12 py-8">
@@ -420,7 +444,7 @@ export default function LibraryPage() {
                     <Badge variant="outline" className="text-[10px] font-mono opacity-50">{ayah.numberInSurah}</Badge>
                     <p 
                       className="text-right text-3xl leading-[3.5rem] font-medium font-arabic text-slate-900" 
-                      style={{ direction: 'rtl', fontFamily: 'var(--font-arabic)' }}
+                      style={{ direction: 'rtl' }}
                     >
                       {ayah.text}
                     </p>
@@ -432,18 +456,20 @@ export default function LibraryPage() {
               ))}
             </div>
           ) : (
-            <div className="prose prose-slate mt-8 text-lg leading-relaxed text-slate-700">
-              <p className="first-letter:text-5xl first-letter:font-bold first-letter:text-emerald-600 first-letter:mr-3 first-letter:float-left">
-                {selectedBook?.content}
-              </p>
-              <p className="mt-4">{selectedBook?.content}</p>
-              <p className="mt-4">{selectedBook?.content}</p>
+            <div className="prose prose-slate mt-8 text-lg leading-relaxed text-slate-700 whitespace-pre-wrap">
+              {aiContent ? (
+                <div className="first-letter:text-5xl first-letter:font-bold first-letter:text-emerald-600 first-letter:mr-3 first-letter:float-left">
+                  {aiContent}
+                </div>
+              ) : (
+                <p className="text-center italic opacity-50">No content available.</p>
+              )}
             </div>
           )}
         </div>
 
         <div className="mt-auto py-6 border-t flex justify-center sticky bottom-0 bg-white">
-          <p className="text-[10px] text-muted-foreground uppercase font-bold">Verified Knowledge Center</p>
+          <p className="text-[10px] text-muted-foreground uppercase font-bold">Verified AI Knowledge Center</p>
         </div>
       </div>
     );
@@ -460,7 +486,7 @@ export default function LibraryPage() {
             <div>
               <h1 className="text-2xl font-bold">Book Catalog</h1>
               <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <CheckCircle2 className="h-3 w-3 text-primary" /> {filteredBooks.length.toLocaleString()} Titles Available
+                <CheckCircle2 className="h-3 w-3 text-primary" /> {filteredBooks.length.toLocaleString()} Real-time AI Titles
               </p>
             </div>
           </div>
@@ -517,7 +543,7 @@ export default function LibraryPage() {
                     <p className="text-[10px] font-medium text-emerald-600 mt-1">{book.parts} Parts</p>
                   </div>
                   <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 h-8 text-[10px] font-bold" onClick={() => openReader(book)}>
-                    <BookOpen className="h-3 w-3 mr-1" /> READ BOOK
+                    <BookOpen className="h-3 w-3 mr-1" /> READ
                   </Button>
                 </div>
               </div>
