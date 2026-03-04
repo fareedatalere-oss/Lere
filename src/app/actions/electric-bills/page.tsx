@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Zap, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Zap, ShieldCheck, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/context/UserContext";
@@ -17,6 +17,32 @@ export default function ElectricBillsPage() {
   const { user } = useUser();
   const [amount, setAmount] = useState("");
   const [meter, setMeter] = useState("");
+  const [providers, setProviders] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    fetchProviders();
+  }, []);
+
+  const fetchProviders = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('https://datahouse.com.ng/api/electricity_providers', {
+        headers: { 'Authorization': 'Token 80ca2a529de4afa096c4eabefeb275dafe3a8941' }
+      });
+      const data = await response.json();
+      setProviders(data || []);
+    } catch (err) {
+      // Fallback
+      setProviders([
+        { id: "ikedc", name: "Ikeja Electric" },
+        { id: "ekedc", name: "Eko Electric" },
+        { id: "aedc", name: "Abuja Electric" },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handlePay = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,12 +69,14 @@ export default function ElectricBillsPage() {
             <form onSubmit={handlePay} className="space-y-4">
               <div className="space-y-2">
                 <Label>Distribution Company (Disco)</Label>
-                <select className="w-full h-12 px-3 rounded-xl border border-input bg-background">
-                  <option>IKEDC (Ikeja Electric)</option>
-                  <option>EKEDC (Eko Electric)</option>
-                  <option>AEDC (Abuja Electric)</option>
-                  <option>PHED (Port Harcourt Electric)</option>
-                </select>
+                {isLoading ? (
+                  <div className="flex items-center gap-2 text-xs py-2"><Loader2 className="animate-spin h-3 w-3" /> Fetching providers...</div>
+                ) : (
+                  <select className="w-full h-12 px-3 rounded-xl border border-input bg-background" required>
+                    <option value="">Select Disco</option>
+                    {providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Meter Number</Label>

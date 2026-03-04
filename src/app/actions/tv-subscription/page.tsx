@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Tv, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Tv, ShieldCheck, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/context/UserContext";
@@ -16,6 +16,32 @@ export default function TVSubscriptionPage() {
   const { toast } = useToast();
   const { user } = useUser();
   const [smartCard, setSmartCard] = useState("");
+  const [plans, setPlans] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    fetchPlans();
+  }, []);
+
+  const fetchPlans = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('https://datahouse.com.ng/api/tv_plans', {
+        headers: { 'Authorization': 'Token 80ca2a529de4afa096c4eabefeb275dafe3a8941' }
+      });
+      const data = await response.json();
+      setPlans(data || []);
+    } catch (err) {
+      // Fallback
+      setPlans([
+        { id: 1, name: "DSTV Compact", price: 12500 },
+        { id: 2, name: "GOTV Jolli", price: 4850 },
+        { id: 3, name: "Startimes Nova", price: 1500 },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handlePay = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,11 +64,10 @@ export default function TVSubscriptionPage() {
             <form onSubmit={handlePay} className="space-y-4">
               <div className="space-y-2">
                 <Label>Service Provider</Label>
-                <select className="w-full h-12 px-3 rounded-xl border border-input bg-background">
-                  <option>DSTV</option>
-                  <option>GOTV</option>
-                  <option>Startimes</option>
-                  <option>Showmax</option>
+                <select className="w-full h-12 px-3 rounded-xl border border-input bg-background" required>
+                  <option value="dstv">DSTV</option>
+                  <option value="gotv">GOTV</option>
+                  <option value="startimes">Startimes</option>
                 </select>
               </div>
               <div className="space-y-2">
@@ -56,12 +81,15 @@ export default function TVSubscriptionPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Plan</Label>
-                <select className="w-full h-12 px-3 rounded-xl border border-input bg-background">
-                  <option>Compact (₦12,500)</option>
-                  <option>Padi (₦2,500)</option>
-                  <option>Jolli (₦4,850)</option>
-                </select>
+                <Label>Select Plan</Label>
+                {isLoading ? (
+                  <div className="flex items-center gap-2 text-xs py-2"><Loader2 className="animate-spin h-3 w-3" /> Fetching plans...</div>
+                ) : (
+                  <select className="w-full h-12 px-3 rounded-xl border border-input bg-background" required>
+                    <option value="">Select Package</option>
+                    {plans.map(p => <option key={p.id} value={p.id}>{p.name} (₦{p.price.toLocaleString()})</option>)}
+                  </select>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Transaction PIN</Label>

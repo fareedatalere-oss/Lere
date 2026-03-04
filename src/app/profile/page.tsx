@@ -3,7 +3,7 @@
 
 import { useUser } from "@/context/UserContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { 
   ArrowLeft, 
   User, 
@@ -13,20 +13,60 @@ import {
   Lock, 
   KeyRound, 
   Hash, 
-  CreditCard,
   ChevronRight,
   ShieldCheck,
-  Smartphone
+  Smartphone,
+  Music,
+  Loader2
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
+import { useState, useRef } from "react";
+import { useFirebase } from "@/firebase";
+import { doc, updateDoc } from "firebase/firestore";
 
 export default function ProfilePage() {
   const { user } = useUser();
+  const { firestore } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
+  const [isUpdating, setIsUpdating] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!user) return null;
+
+  const handleRingtoneClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('audio/')) {
+      toast({ variant: "destructive", title: "Invalid File", description: "Please select an audio file." });
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Audio = reader.result as string;
+        if (user.id && firestore) {
+          const userRef = doc(firestore, "users", user.id);
+          await updateDoc(userRef, { customRingtoneUrl: base64Audio });
+          toast({ title: "Ringtone Updated", description: "Your custom ringtone has been saved." });
+        }
+        setIsUpdating(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Upload Failed", description: "Could not save ringtone." });
+      setIsUpdating(false);
+    }
+  };
 
   const handleAction = (action: string) => {
     toast({
@@ -45,7 +85,6 @@ export default function ProfilePage() {
           <h1 className="text-2xl font-bold">Profile</h1>
         </div>
 
-        {/* Profile Header */}
         <div className="flex flex-col items-center space-y-3 pb-4">
           <div className="relative">
             <div className="w-28 h-28 rounded-full bg-primary/10 flex items-center justify-center border-4 border-white shadow-xl overflow-hidden">
@@ -61,12 +100,35 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Settings Sections */}
         <div className="space-y-4">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground pl-1">Security Settings</h3>
+          <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground pl-1">Security & Ringtone</h3>
           
           <Card className="border-none shadow-sm overflow-hidden">
             <CardContent className="p-0 divide-y">
+              <button 
+                className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-colors"
+                onClick={handleRingtoneClick}
+                disabled={isUpdating}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-pink-50 text-pink-500 rounded-xl flex items-center justify-center">
+                    {isUpdating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Music className="h-5 w-5" />}
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-semibold">Change Ringtone</p>
+                    <p className="text-[10px] text-muted-foreground">Choose sound from your device</p>
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                className="hidden" 
+                accept="audio/*"
+              />
+
               <button 
                 className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-colors"
                 onClick={() => handleAction("Add Voice Lock")}
@@ -98,38 +160,6 @@ export default function ProfilePage() {
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </button>
-
-              <button 
-                className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-colors"
-                onClick={() => handleAction("Change Password")}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-purple-50 text-purple-500 rounded-xl flex items-center justify-center">
-                    <KeyRound className="h-5 w-5" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-semibold">Change Password</p>
-                    <p className="text-[10px] text-muted-foreground">Update your login security</p>
-                  </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </button>
-
-              <button 
-                className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-colors"
-                onClick={() => handleAction("Change Transaction PIN")}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-amber-50 text-amber-500 rounded-xl flex items-center justify-center">
-                    <Hash className="h-5 w-5" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-semibold">Change Transaction PIN</p>
-                    <p className="text-[10px] text-muted-foreground">Manage your 4-digit security code</p>
-                  </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </button>
             </CardContent>
           </Card>
 
@@ -139,7 +169,7 @@ export default function ProfilePage() {
             <CardContent className="p-0 divide-y">
               <button 
                 className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-colors"
-                onClick={() => handleAction("Buy New Number")}
+                onClick={() => router.push("/actions/buy-number")}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-green-50 text-green-500 rounded-xl flex items-center justify-center">

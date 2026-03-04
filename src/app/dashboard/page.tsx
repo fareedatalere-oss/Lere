@@ -9,9 +9,6 @@ import {
   query, 
   where, 
   onSnapshot, 
-  getDocs,
-  limit,
-  orderBy
 } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -55,6 +52,8 @@ import { FirestorePermissionError } from "@/firebase/errors";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { useToast } from "@/hooks/use-toast";
 
+const DEFAULT_RINGTONE = "https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3";
+
 export default function Dashboard() {
   const { user, logout, isLoading: isUserLoading } = useUser();
   const { firestore, user: firebaseUser, isUserLoading: isFirebaseLoading } = useFirebase();
@@ -95,6 +94,8 @@ export default function Dashboard() {
           setIncomingCall(callData);
           
           if (ringtoneRef.current) {
+            // Set ringtone source to custom or default
+            ringtoneRef.current.src = (user as any).customRingtoneUrl || DEFAULT_RINGTONE;
             ringtoneRef.current.play().catch(e => console.log("Audio play blocked"));
           }
 
@@ -160,7 +161,6 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background pb-20 md:pb-8">
       <audio 
         ref={ringtoneRef} 
-        src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3" 
         loop 
         preload="auto"
       />
