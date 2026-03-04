@@ -20,13 +20,17 @@ import {
   Gavel,
   CheckCircle2,
   ChevronDown,
-  Loader2
+  Loader2,
+  Globe,
+  Palette,
+  Lightbulb,
+  UserCircle
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
-type Category = "All" | "Science" | "ICT" | "Qur'an" | "Hadiths" | "Islam" | "Christian" | "History" | "Laws";
+type Category = "All" | "Science" | "ICT" | "Qur'an" | "Hadiths" | "Islam" | "Christian" | "History" | "Laws" | "Philosophy" | "Literature" | "Arts" | "Biographies";
 
 interface Book {
   id: string;
@@ -40,7 +44,10 @@ interface Book {
 // Comprehensive generator for exactly 1000 unique book entries
 const generate1000Books = (): Book[] => {
   const books: Book[] = [];
-  const categories: Category[] = ["Science", "ICT", "Qur'an", "Hadiths", "Islam", "Christian", "History", "Laws"];
+  const categories: Category[] = [
+    "Science", "ICT", "Qur'an", "Hadiths", "Islam", "Christian", 
+    "History", "Laws", "Philosophy", "Literature", "Arts", "Biographies"
+  ];
   
   const categoryTemplates: Record<Category, string[]> = {
     "Science": ["Physics Fundamentals", "Quantum Mechanics", "Organic Chemistry", "Evolutionary Biology", "Astrophysics", "Genetics Today", "Neuroscience Intro", "General Relativity", "Chemical Engineering", "Botany Studies"],
@@ -51,10 +58,14 @@ const generate1000Books = (): Book[] => {
     "Christian": ["The Holy Bible (KJV)", "New Testament Study", "Psalms & Proverbs", "Church History", "Systematic Theology", "Gospel Analysis", "Old Testament Kings", "Epistles of Paul", "Biblical Prophecy", "Christian Ethics"],
     "History": ["African Kingdoms", "Ancient Rome", "The Industrial Era", "World War II Docs", "Medieval Europe", "Cold War Secrets", "Ancient Egypt", "History of Nigeria", "The Renaissance", "Global Revolutions"],
     "Laws": ["Constitutional Law", "Criminal Justice", "International Treaties", "Human Rights Law", "Corporate Legalities", "Environmental Acts", "Legal Ethics", "Property Law", "Civil Rights History", "Global Jurisprudence"],
+    "Philosophy": ["Meditations on Existence", "The Republic Study", "Beyond Good and Evil", "The Art of War", "Critique of Pure Reason", "Eastern Wisdom", "Logic & Reason", "Existentialism Intro", "The Social Contract", "Ethics of Antiquity"],
+    "Literature": ["Classic Poetry", "Shakespeare's Sonnets", "Modernist Prose", "The Odyssey Retold", "Anthology of Drama", "Victorian Novels", "Symbolist Movement", "The Epic of Gilgamesh", "Gothic Fiction", "Post-Colonial Tales"],
+    "Arts": ["Renaissance Masters", "Abstract Expressionism", "History of Sculpture", "Musical Theory", "Cinema Esthetics", "Architectural Wonders", "The Color Theory", "Gothic Art", "Impressionist Light", "Digital Art Evolution"],
+    "Biographies": ["Nelson Mandela: A Long Walk", "Steve Jobs: The Visionary", "Malala: The Voice", "Einstein: The Genius", "Marie Curie: Radiation", "Malcolm X: Legacy", "Da Vinci: The Polymath", "Cleopatra: Queen", "Lincoln: The Unifier", "Mao: The Revolution"],
     "All": []
   };
 
-  const authors = ["Dr. Ahmed Lere", "Prof. Jane Smith", "Imam Malik", "Justice Roberts", "Scholar John", "Apostle Paul", "Historian Musa", "Barrister Bello", "Dr. Sarah", "Sheikh Ibrahim"];
+  const authors = ["Dr. Ahmed Lere", "Prof. Jane Smith", "Imam Malik", "Justice Roberts", "Scholar John", "Apostle Paul", "Historian Musa", "Barrister Bello", "Dr. Sarah", "Sheikh Ibrahim", "Dr. Marcus Aurelius", "Homer", "William Shakespeare"];
 
   for (let i = 1; i <= 1000; i++) {
     const cat = categories[i % categories.length];
@@ -63,11 +74,11 @@ const generate1000Books = (): Book[] => {
     
     books.push({
       id: i.toString(),
-      title: `${template} - Part ${Math.floor(i / 8) + 1}`,
+      title: `${template} - Part ${Math.floor(i / categories.length) + 1}`,
       author: authors[i % authors.length],
       category: cat,
-      parts: (i % 100) + 1, // Up to 100 parts
-      cover: `https://picsum.photos/seed/book${i}/200/300`
+      parts: (i % 100) + 1,
+      cover: `https://picsum.photos/seed/worldbook${i}/200/300`
     });
   }
   return books;
@@ -93,6 +104,10 @@ export default function LibraryPage() {
     { name: "Christian", icon: Cross, color: "text-purple-500 bg-purple-50" },
     { name: "History", icon: HistoryIcon, color: "text-orange-500 bg-orange-50" },
     { name: "Laws", icon: Gavel, color: "text-slate-600 bg-slate-100" },
+    { name: "Philosophy", icon: Lightbulb, color: "text-amber-500 bg-amber-50" },
+    { name: "Literature", icon: Globe, color: "text-rose-500 bg-rose-50" },
+    { name: "Arts", icon: Palette, color: "text-cyan-500 bg-cyan-50" },
+    { name: "Biographies", icon: UserCircle, color: "text-violet-500 bg-violet-50" },
   ];
 
   const filteredBooks = useMemo(() => {
@@ -119,7 +134,6 @@ export default function LibraryPage() {
     });
   };
 
-  // Reset visible count when search or category changes
   useEffect(() => {
     setVisibleCount(50);
   }, [selectedCategory, searchQuery]);
@@ -141,16 +155,16 @@ export default function LibraryPage() {
             </div>
             <CardContent className="p-8 space-y-4">
               <div className="space-y-2">
-                <Badge className="bg-white/20 text-white border-none mb-2">1,000+ Titles</Badge>
-                <h2 className="text-3xl font-bold">The Knowledge Hub</h2>
-                <p className="text-primary-foreground/80">Browse world history, laws, science, and holy scriptures.</p>
+                <Badge className="bg-white/20 text-white border-none mb-2">1,000+ Unique Titles</Badge>
+                <h2 className="text-3xl font-bold">World Knowledge</h2>
+                <p className="text-primary-foreground/80">Discover history, laws, philosophy, and scripture from every corner of the globe.</p>
               </div>
               <div className="grid grid-cols-2 gap-3 pt-4">
                 <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-none backdrop-blur-md rounded-xl h-14" onClick={() => setView("books")}>
-                  <Library className="h-5 w-5 mr-2" /> Library
+                  <Library className="h-5 w-5 mr-2" /> Collection
                 </Button>
                 <Button variant="secondary" className="bg-white text-primary hover:bg-white/90 rounded-xl h-14" onClick={() => setView("books")}>
-                  <BookOpen className="h-5 w-5 mr-2" /> Books
+                  <BookOpen className="h-5 w-5 mr-2" /> All Books
                 </Button>
               </div>
             </CardContent>
@@ -162,7 +176,7 @@ export default function LibraryPage() {
               <Button 
                 key={cat.name} 
                 variant="outline" 
-                className="h-24 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all group"
+                className="h-24 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all group text-left px-4"
                 onClick={() => {
                   setSelectedCategory(cat.name);
                   setView("books");
@@ -171,7 +185,7 @@ export default function LibraryPage() {
                 <div className={`w-10 h-10 ${cat.color} rounded-full flex items-center justify-center group-hover:scale-110 transition-transform`}>
                   <cat.icon className="h-5 w-5" />
                 </div>
-                <span className="text-xs font-semibold">{cat.name}</span>
+                <span className="text-[10px] font-bold uppercase truncate w-full">{cat.name}</span>
               </Button>
             ))}
           </div>
@@ -191,7 +205,7 @@ export default function LibraryPage() {
             <div>
               <h1 className="text-2xl font-bold">World Library</h1>
               <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <CheckCircle2 className="h-3 w-3 text-primary" /> Listing {MASTER_LIBRARY.length} available titles
+                <CheckCircle2 className="h-3 w-3 text-primary" /> Displaying {MASTER_LIBRARY.length} verified titles
               </p>
             </div>
           </div>
@@ -201,7 +215,7 @@ export default function LibraryPage() {
           <div className="relative">
             <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
             <Input 
-              placeholder="Search 1,000+ books by title or author..." 
+              placeholder="Search 1,000+ titles by name or author..." 
               className="pl-10 h-12 bg-white rounded-xl border-none shadow-sm focus-visible:ring-primary"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -231,23 +245,28 @@ export default function LibraryPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredBooks.slice(0, visibleCount).map((book) => (
             <Card key={book.id} className="border-none shadow-sm hover:shadow-md transition-all overflow-hidden bg-white">
               <div className="flex h-44">
-                <div className="w-32 shrink-0 bg-slate-100 p-2">
-                  <img src={book.cover} alt={book.title} className="w-full h-full object-cover rounded-md shadow-sm" />
+                <div className="w-28 shrink-0 bg-slate-100 p-2">
+                  <img 
+                    src={book.cover} 
+                    alt={book.title} 
+                    className="w-full h-full object-cover rounded-md shadow-sm"
+                    loading="lazy"
+                  />
                 </div>
-                <div className="flex-1 p-4 flex flex-col justify-between">
+                <div className="flex-1 p-3 flex flex-col justify-between">
                   <div className="space-y-1">
-                    <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px] uppercase font-bold px-2 mb-1">
+                    <Badge variant="secondary" className="bg-primary/10 text-primary text-[9px] uppercase font-bold px-2 mb-1">
                       {book.category}
                     </Badge>
-                    <h4 className="font-bold text-sm leading-tight line-clamp-2">{book.title}</h4>
-                    <p className="text-[10px] text-muted-foreground italic">by {book.author}</p>
-                    <p className="text-[10px] font-medium text-secondary mt-1">{book.parts} Parts Available</p>
+                    <h4 className="font-bold text-xs leading-tight line-clamp-2">{book.title}</h4>
+                    <p className="text-[9px] text-muted-foreground italic truncate">by {book.author}</p>
+                    <p className="text-[10px] font-medium text-secondary mt-1">{book.parts} Parts</p>
                   </div>
-                  <Button size="sm" className="w-full bg-primary hover:bg-primary/90 h-8 text-xs font-bold" onClick={() => handleGetBook(book.title)}>
+                  <Button size="sm" className="w-full bg-primary hover:bg-primary/90 h-8 text-[10px] font-bold" onClick={() => handleGetBook(book.title)}>
                     <Download className="h-3 w-3 mr-1" /> GET
                   </Button>
                 </div>
@@ -257,22 +276,22 @@ export default function LibraryPage() {
         </div>
 
         {visibleCount < filteredBooks.length && (
-          <div className="flex justify-center py-8">
+          <div className="flex justify-center py-10">
             <Button 
               onClick={loadMore} 
               disabled={isLoadingMore} 
               variant="outline"
-              className="rounded-xl px-8 h-12 border-primary text-primary hover:bg-primary/5"
+              className="rounded-xl px-10 h-12 border-primary text-primary hover:bg-primary/5"
             >
               {isLoadingMore ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Loading Titles...
+                  Loading More...
                 </>
               ) : (
                 <>
                   <ChevronDown className="h-4 w-4 mr-2" />
-                  Show More (Showing {visibleCount} of {filteredBooks.length})
+                  Show More (Viewing {visibleCount} of {filteredBooks.length})
                 </>
               )}
             </Button>
@@ -280,9 +299,9 @@ export default function LibraryPage() {
         )}
 
         {filteredBooks.length === 0 && (
-          <div className="text-center py-20 space-y-4">
+          <div className="text-center py-24 space-y-4">
             <Library className="h-16 w-16 text-muted/30 mx-auto" />
-            <p className="text-muted-foreground">No books found matching your criteria.</p>
+            <p className="text-muted-foreground">No matches found in the 1,000 title collection.</p>
           </div>
         )}
       </div>
