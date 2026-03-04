@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -57,80 +58,26 @@ const generate1000Books = (): Book[] => {
   ];
   
   const categoryTemplates: Record<Category, string[]> = {
-    "Science": [
-      "Physics Fundamentals", "Quantum Mechanics", "Organic Chemistry", "Evolutionary Biology", 
-      "Astrophysics", "Genetics Today", "Neuroscience Intro", "General Relativity", 
-      "Chemical Engineering", "Botany Studies", "Nuclear Physics", "Marine Biology"
-    ],
-    "ICT": [
-      "Cloud Architecture", "Python for Data", "Cybersecurity Shield", "React Native Pro", 
-      "AI & Ethics", "Blockchain Ledger", "UI/UX Mastery", "System Design", 
-      "Networking Basics", "Database Management", "Kubernetes", "Web3 Development"
-    ],
-    "Qur'an": [
-      "Surah Al-Baqarah Study", "The Noble Qur'an", "Tajweed Guide", "Tafsir Al-Jalalayn", 
-      "Qur'anic Arabic", "Chronology of Revelation", "Verses of Wisdom", "The Holy Message"
-    ],
-    "Hadiths": [
-      "Sahih Al-Bukhari Vol", "Sahih Muslim Gems", "Riyadh as-Salihin", "40 Hadith Nawawi", 
-      "Sunan Abi Dawud", "Hadith Science", "The Prophetic Way", "Authentic Narrations"
-    ],
-    "Islam": [
-      "Fiqh of Worship", "Islamic History", "Lives of Prophets", "Sufism Insights", 
-      "Hajj & Umrah Guide", "Zakat Principles", "Islamic Law", "Philosophy of Deen"
-    ],
-    "Christian": [
-      "The Holy Bible (KJV)", "New Testament Study", "Psalms & Proverbs", "Church History", 
-      "Systematic Theology", "Gospel Analysis", "Old Testament Kings", "Epistles of Paul"
-    ],
-    "History": [
-      "African Kingdoms", "Ancient Rome", "The Industrial Era", "World War II Docs", 
-      "Medieval Europe", "Cold War Secrets", "Ancient Egypt", "History of Nigeria"
-    ],
-    "Laws": [
-      "Constitutional Law", "Criminal Justice", "International Treaties", "Human Rights Law", 
-      "Corporate Legalities", "Environmental Acts", "Legal Ethics", "Property Law"
-    ],
-    "Philosophy": [
-      "Meditations on Existence", "The Republic Study", "Beyond Good and Evil", "The Art of War", 
-      "Critique of Pure Reason", "Eastern Wisdom", "Logic & Reason", "Existentialism Intro"
-    ],
-    "Literature": [
-      "Classic Poetry", "Shakespeare's Sonnets", "Modernist Prose", "The Odyssey Retold", 
-      "Anthology of Drama", "Victorian Novels", "Symbolist Movement", "The Epic of Gilgamesh"
-    ],
-    "Arts": [
-      "Renaissance Masters", "Abstract Expressionism", "History of Sculpture", "Musical Theory", 
-      "Cinema Esthetics", "Architectural Wonders", "The Color Theory", "Gothic Art"
-    ],
-    "Biographies": [
-      "Nelson Mandela: A Long Walk", "Steve Jobs: The Visionary", "Malala: The Voice", 
-      "Einstein: The Genius", "Marie Curie: Radiation", "Malcolm X: Legacy"
-    ],
-    "Economics": [
-      "Wealth of Nations", "Capital in 21st Century", "Macroeconomics", "Stock Market Mastery",
-      "Behavioral Economics", "Global Trade Policy", "Digital Currency", "Asset Management"
-    ],
-    "Health": [
-      "Anatomy for Students", "Nutrition Science", "Mental Wellness", "Medical Ethics",
-      "Public Health Systems", "Geriatrics Guide", "Pediatric Care", "Virology Today"
-    ],
-    "Psychology": [
-      "Interpretation of Dreams", "Behavioral Therapy", "Social Dynamics", "Child Psychology",
-      "Cognitive Science", "Personality Traits", "Emotional Intelligence", "Healing Trauma"
-    ],
-    "Engineering": [
-      "Civil Engineering", "Mechanical Dynamics", "Electrical Circuits", "Aero Design",
-      "Structural Integrity", "Robotics Intro", "Renewable Energy", "Material Science"
-    ],
+    "Science": ["Physics Fundamentals", "Quantum Mechanics", "Organic Chemistry", "Evolutionary Biology", "Astrophysics", "Genetics Today", "Neuroscience Intro", "General Relativity", "Chemical Engineering", "Botany Studies"],
+    "ICT": ["Cloud Architecture", "Python for Data", "Cybersecurity Shield", "React Native Pro", "AI & Ethics", "Blockchain Ledger", "UI/UX Mastery", "System Design", "Networking Basics", "Database Management"],
+    "Qur'an": ["Surah Al-Baqarah Study", "The Noble Qur'an", "Tajweed Guide", "Tafsir Al-Jalalayn", "Qur'anic Arabic", "Chronology of Revelation", "Verses of Wisdom", "The Holy Message"],
+    "Hadiths": ["Sahih Al-Bukhari Vol", "Sahih Muslim Gems", "Riyadh as-Salihin", "40 Hadith Nawawi", "Sunan Abi Dawud", "Hadith Science", "The Prophetic Way", "Authentic Narrations"],
+    "Islam": ["Fiqh of Worship", "Islamic History", "Lives of Prophets", "Sufism Insights", "Hajj & Umrah Guide", "Zakat Principles", "Islamic Law", "Philosophy of Deen"],
+    "Christian": ["The Holy Bible (KJV)", "New Testament Study", "Psalms & Proverbs", "Church History", "Systematic Theology", "Gospel Analysis", "Old Testament Kings", "Epistles of Paul"],
+    "History": ["African Kingdoms", "Ancient Rome", "The Industrial Era", "World War II Docs", "Medieval Europe", "Cold War Secrets", "Ancient Egypt", "History of Nigeria"],
+    "Laws": ["Constitutional Law", "Criminal Justice", "International Treaties", "Human Rights Law", "Corporate Legalities", "Environmental Acts", "Legal Ethics", "Property Law"],
+    "Philosophy": ["Meditations on Existence", "The Republic Study", "Beyond Good and Evil", "The Art of War", "Critique of Pure Reason", "Eastern Wisdom", "Logic & Reason", "Existentialism Intro"],
+    "Literature": ["Classic Poetry", "Shakespeare's Sonnets", "Modernist Prose", "The Odyssey Retold", "Anthology of Drama", "Victorian Novels", "Symbolist Movement", "The Epic of Gilgamesh"],
+    "Arts": ["Renaissance Masters", "Abstract Expressionism", "History of Sculpture", "Musical Theory", "Cinema Esthetics", "Architectural Wonders", "The Color Theory", "Gothic Art"],
+    "Biographies": ["Nelson Mandela: A Long Walk", "Steve Jobs: The Visionary", "Malala: The Voice", "Einstein: The Genius", "Marie Curie: Radiation", "Malcolm X: Legacy"],
+    "Economics": ["Wealth of Nations", "Capital in 21st Century", "Macroeconomics", "Stock Market Mastery", "Behavioral Economics", "Global Trade Policy", "Digital Currency", "Asset Management"],
+    "Health": ["Anatomy for Students", "Nutrition Science", "Mental Wellness", "Medical Ethics", "Public Health Systems", "Geriatrics Guide", "Pediatric Care", "Virology Today"],
+    "Psychology": ["Interpretation of Dreams", "Behavioral Therapy", "Social Dynamics", "Child Psychology", "Cognitive Science", "Personality Traits", "Emotional Intelligence", "Healing Trauma"],
+    "Engineering": ["Civil Engineering", "Mechanical Dynamics", "Electrical Circuits", "Aero Design", "Structural Integrity", "Robotics Intro", "Renewable Energy", "Material Science"],
     "All": []
   };
 
-  const authors = [
-    "Dr. Ahmed Lere", "Prof. Jane Smith", "Imam Malik", "Justice Roberts", 
-    "Scholar John", "Apostle Paul", "Historian Musa", "Barrister Bello", 
-    "Dr. Sarah", "Sheikh Ibrahim", "Dr. Marcus Aurelius", "Homer"
-  ];
+  const authors = ["Dr. Ahmed Lere", "Prof. Jane Smith", "Imam Malik", "Justice Roberts", "Scholar John", "Apostle Paul", "Historian Musa", "Barrister Bello"];
 
   for (let i = 1; i <= 1000; i++) {
     const cat = categories[i % categories.length];
@@ -139,7 +86,7 @@ const generate1000Books = (): Book[] => {
     
     books.push({
       id: i.toString(),
-      title: `${template} - Part ${Math.floor(i / categories.length) + 1}`,
+      title: `${template} - Volume ${Math.floor(i / categories.length) + 1}`,
       author: authors[i % authors.length],
       category: cat,
       parts: (i % 100) + 1,
@@ -196,13 +143,6 @@ export default function LibraryPage() {
     }, 500);
   };
 
-  const handleGetBook = (title: string) => {
-    toast({
-      title: "Downloading...",
-      description: `${title} is being added to your offline library.`,
-    });
-  };
-
   useEffect(() => {
     setVisibleCount(50);
   }, [selectedCategory, searchQuery]);
@@ -215,7 +155,7 @@ export default function LibraryPage() {
             <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full bg-white shadow-sm">
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-2xl font-bold">Lere Library</h1>
+            <h1 className="text-2xl font-bold">World Library</h1>
           </div>
 
           <Card className="bg-primary text-white border-none shadow-xl overflow-hidden relative">
@@ -226,13 +166,13 @@ export default function LibraryPage() {
               <div className="space-y-2">
                 <Badge className="bg-white/20 text-white border-none mb-2">1,000 Verified Titles</Badge>
                 <h2 className="text-3xl font-bold">World Knowledge</h2>
-                <p className="text-primary-foreground/80">Search 1,000 unique books instantly.</p>
+                <p className="text-primary-foreground/80">Every major religious and educational text.</p>
               </div>
               <div className="pt-2">
                  <div className="relative">
                     <Search className="absolute left-3 top-3 h-5 w-5 text-primary" />
                     <Input 
-                      placeholder="Search books..." 
+                      placeholder="Search 1,000 titles..." 
                       className="pl-10 h-12 bg-white text-foreground rounded-xl border-none shadow-sm focus-visible:ring-white"
                       value={searchQuery}
                       onChange={(e) => {
@@ -244,7 +184,7 @@ export default function LibraryPage() {
               </div>
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-none backdrop-blur-md rounded-xl h-14" onClick={() => setView("books")}>
-                  <Library className="h-5 w-5 mr-2" /> Collection
+                  <Library className="h-5 w-5 mr-2" /> Library
                 </Button>
                 <Button variant="secondary" className="bg-white text-primary hover:bg-white/90 rounded-xl h-14" onClick={() => setView("books")}>
                   <BookOpen className="h-5 w-5 mr-2" /> All Books
@@ -253,10 +193,7 @@ export default function LibraryPage() {
             </CardContent>
           </Card>
 
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-lg">Browse Categories</h3>
-            <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-          </div>
+          <h3 className="font-bold text-lg">Browse Categories</h3>
           
           <div className="grid grid-cols-2 gap-4">
             {categories.map((cat) => (
@@ -290,9 +227,9 @@ export default function LibraryPage() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold">World Library</h1>
+              <h1 className="text-2xl font-bold">Book Catalog</h1>
               <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <CheckCircle2 className="h-3 w-3 text-primary" /> Displaying {MASTER_LIBRARY.length} verified titles
+                <CheckCircle2 className="h-3 w-3 text-primary" /> 1,000 Verified Books
               </p>
             </div>
           </div>
@@ -302,7 +239,7 @@ export default function LibraryPage() {
           <div className="relative">
             <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
             <Input 
-              placeholder="Search 1,000+ titles by name or author..." 
+              placeholder="Search by title, author, or category..." 
               className="pl-10 h-12 bg-white rounded-xl border-none shadow-sm focus-visible:ring-primary"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -337,12 +274,7 @@ export default function LibraryPage() {
             <Card key={book.id} className="border-none shadow-sm hover:shadow-md transition-all overflow-hidden bg-white">
               <div className="flex h-44">
                 <div className="w-28 shrink-0 bg-slate-100 p-2">
-                  <img 
-                    src={book.cover} 
-                    alt={book.title} 
-                    className="w-full h-full object-cover rounded-md shadow-sm"
-                    loading="lazy"
-                  />
+                  <img src={book.cover} alt={book.title} className="w-full h-full object-cover rounded-md shadow-sm" loading="lazy" />
                 </div>
                 <div className="flex-1 p-3 flex flex-col justify-between">
                   <div className="space-y-1">
@@ -353,8 +285,8 @@ export default function LibraryPage() {
                     <p className="text-[9px] text-muted-foreground italic truncate">by {book.author}</p>
                     <p className="text-[10px] font-medium text-secondary mt-1">{book.parts} Parts</p>
                   </div>
-                  <Button size="sm" className="w-full bg-primary hover:bg-primary/90 h-8 text-[10px] font-bold" onClick={() => handleGetBook(book.title)}>
-                    <Download className="h-3 w-3 mr-1" /> GET
+                  <Button size="sm" className="w-full bg-primary hover:bg-primary/90 h-8 text-[10px] font-bold" onClick={() => toast({ title: "Downloading", description: `${book.title} is being saved offline.` })}>
+                    <Download className="h-3 w-3 mr-1" /> GET BOOK
                   </Button>
                 </div>
               </div>
@@ -364,31 +296,10 @@ export default function LibraryPage() {
 
         {visibleCount < filteredBooks.length && (
           <div className="flex justify-center py-10">
-            <Button 
-              onClick={loadMore} 
-              disabled={isLoadingMore} 
-              variant="outline"
-              className="rounded-xl px-10 h-12 border-primary text-primary hover:bg-primary/5"
-            >
-              {isLoadingMore ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Loading More...
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="h-4 w-4 mr-2" />
-                  Show More (Viewing {visibleCount} of {filteredBooks.length})
-                </>
-              )}
+            <Button onClick={loadMore} disabled={isLoadingMore} variant="outline" className="rounded-xl px-10 h-12 border-primary text-primary hover:bg-primary/5">
+              {isLoadingMore ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ChevronDown className="h-4 w-4 mr-2" />}
+              Show More (Viewing {visibleCount} of {filteredBooks.length})
             </Button>
-          </div>
-        )}
-
-        {filteredBooks.length === 0 && (
-          <div className="text-center py-24 space-y-4">
-            <Library className="h-16 w-16 text-muted/30 mx-auto" />
-            <p className="text-muted-foreground">No matches found in the 1,000 title collection.</p>
           </div>
         )}
       </div>

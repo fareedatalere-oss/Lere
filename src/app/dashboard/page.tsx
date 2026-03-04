@@ -20,12 +20,7 @@ import { Input } from "@/components/ui/input";
 import { 
   Phone, 
   Video, 
-  Send, 
-  Smartphone, 
-  Wifi, 
-  CreditCard, 
   User, 
-  MessageSquare, 
   LogOut, 
   Wallet, 
   Loader2,
@@ -37,7 +32,8 @@ import {
   PlayCircle,
   Coins,
   Repeat,
-  Headset
+  Headset,
+  Wifi
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CallInterface } from "@/components/CallInterface";
@@ -94,6 +90,14 @@ export default function Dashboard() {
         if (change.type === "added") {
           const callData = { id: change.doc.id, ...change.doc.data() };
           setIncomingCall(callData);
+          
+          // Browser Push Notification
+          if (Notification.permission === "granted") {
+            new Notification("Incoming Call", {
+              body: `${callData.callerId} is calling you on Lere Connect!`,
+              icon: "/icon.png"
+            });
+          }
         }
       });
     }, async (error) => {
@@ -106,6 +110,12 @@ export default function Dashboard() {
 
     return () => unsubscribe();
   }, [firestore, user, firebaseUser]);
+
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
 
   if (isUserLoading || isFirebaseLoading) {
     return (
@@ -128,7 +138,7 @@ export default function Dashboard() {
       const q = query(usersRef, where("phoneNumber", "==", targetNumber), limit(1));
       const querySnapshot = await getDocs(q);
       if (querySnapshot.empty) {
-        toast({ variant: "destructive", title: "Not Registered", description: "This number isn't yet registered." });
+        toast({ variant: "destructive", title: "Not Registered", description: "This number isn't yet registered with Lere Connect." });
         setIsValidating(false);
         return;
       }
@@ -190,6 +200,7 @@ export default function Dashboard() {
       </header>
 
       <main className="max-w-4xl mx-auto p-4 space-y-6">
+        {/* Wallet Section */}
         <Card className="bg-gradient-to-br from-primary to-primary/80 border-none shadow-xl text-white relative overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div className="space-y-1">
@@ -197,23 +208,23 @@ export default function Dashboard() {
               <div className="flex items-center gap-3">
                 <div className="text-3xl font-bold">₦{user.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                 <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white rounded-full h-8 px-3" onClick={() => router.push("/actions/fund")}>
-                  <PlusCircle className="h-4 w-4" /> Fund
+                  <PlusCircle className="h-4 w-4 mr-1" /> Fund
                 </Button>
               </div>
             </div>
-            <div className="h-10 w-10 bg-white/20 rounded-full flex items-center justify-center">
+            <div className="h-10 w-10 bg-white/20 rounded-full flex items-center justify-center shadow-inner">
               <Wallet className="h-5 w-5" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between bg-white/10 rounded-lg p-3">
+            <div className="flex items-center justify-between bg-white/10 rounded-lg p-3 backdrop-blur-sm">
               <div>
-                <p className="text-[10px] text-white/50 uppercase">Reward Points</p>
+                <p className="text-[10px] text-white/50 uppercase font-bold">Reward Points</p>
                 <p className="text-sm font-bold flex items-center gap-1"><Coins className="h-3 w-3 text-yellow-400" /> {user.rewardBalance?.toFixed(2) || "0.00"}</p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] text-white/50 uppercase">Credit Input</p>
-                <p className="text-sm font-mono">{user.accountNumber}</p>
+                <p className="text-[10px] text-white/50 uppercase font-bold">Credit Input</p>
+                <p className="text-sm font-mono tracking-tighter">{user.accountNumber}</p>
               </div>
             </div>
           </CardContent>
@@ -221,57 +232,58 @@ export default function Dashboard() {
 
         <IceBreaker />
 
+        {/* Action Grid - 8 Buttons restored */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/actions/watch")}>
+          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all" onClick={() => router.push("/actions/watch")}>
             <div className="w-10 h-10 bg-yellow-50 rounded-full flex items-center justify-center">
               <PlayCircle className="h-5 w-5 text-yellow-600" />
             </div>
             <span className="text-xs font-semibold text-center">Watch & Earn</span>
           </Button>
 
-          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/actions/airtime-to-cash")}>
+          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all" onClick={() => router.push("/actions/airtime-to-cash")}>
             <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center">
               <Repeat className="h-5 w-5 text-green-600" />
             </div>
             <span className="text-xs font-semibold text-center">Airtime to Cash</span>
           </Button>
 
-          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/actions/buy-data")}>
+          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all" onClick={() => router.push("/actions/buy-data")}>
             <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
               <Wifi className="h-5 w-5 text-primary" />
             </div>
             <span className="text-xs font-semibold text-center">Buy Data</span>
           </Button>
 
-          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/actions/buy-number")}>
+          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all" onClick={() => router.push("/actions/buy-number")}>
             <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center">
               <Hash className="h-5 w-5 text-secondary" />
             </div>
             <span className="text-xs font-semibold text-center">Buy Number</span>
           </Button>
 
-          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/actions/sms")}>
+          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all" onClick={() => router.push("/actions/sms")}>
             <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
               <MessageCircle className="h-5 w-5 text-primary" />
             </div>
             <span className="text-xs font-semibold text-center">SMS</span>
           </Button>
 
-          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/library")}>
+          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md border-2 border-primary/20 bg-primary/5 transition-all" onClick={() => router.push("/library")}>
             <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center">
               <BookOpen className="h-5 w-5 text-secondary" />
             </div>
-            <span className="text-xs font-semibold text-center">Library</span>
+            <span className="text-xs font-bold text-center text-primary uppercase">Library & Books</span>
           </Button>
 
-          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/profile")}>
+          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all" onClick={() => router.push("/profile")}>
             <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">
               <User className="h-5 w-5 text-slate-600" />
             </div>
             <span className="text-xs font-semibold text-center">Profile</span>
           </Button>
 
-          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/actions/contact")}>
+          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all" onClick={() => router.push("/actions/contact")}>
             <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center">
               <Headset className="h-5 w-5 text-red-600" />
             </div>
@@ -280,12 +292,13 @@ export default function Dashboard() {
         </div>
 
         <div className="pt-6">
-          <Button variant="ghost" className="w-full text-red-500 rounded-xl" onClick={logout}>
+          <Button variant="ghost" className="w-full text-red-500 rounded-xl hover:bg-red-50" onClick={logout}>
             <LogOut className="h-4 w-4 mr-2" /> Logout
           </Button>
         </div>
       </main>
 
+      {/* Call Dialogs */}
       <AlertDialog open={!!incomingCall}>
         <AlertDialogContent className="bg-white rounded-3xl p-8 flex flex-col items-center">
           <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6 animate-bounce">
@@ -296,7 +309,7 @@ export default function Dashboard() {
             <AlertDialogDescription>{incomingCall?.callerId} is calling...</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex gap-4 w-full mt-8">
-            <AlertDialogCancel onClick={() => setIncomingCall(null)} className="flex-1 h-14 rounded-2xl text-red-500 font-bold">Deny</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setIncomingCall(null)} className="flex-1 h-14 rounded-2xl text-red-500 font-bold border-red-100">Deny</AlertDialogCancel>
             <AlertDialogAction onClick={handleAcceptCall} className="flex-1 h-14 rounded-2xl bg-primary text-white font-bold">Pick Up</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
