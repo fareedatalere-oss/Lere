@@ -14,7 +14,6 @@ import {
   Cpu, 
   Heart, 
   Cross,
-  Download,
   BookMarked,
   History as HistoryIcon,
   Gavel,
@@ -30,7 +29,10 @@ import {
   Brain,
   Wrench,
   Sparkles,
-  Dna
+  Dna,
+  BookCopy,
+  Languages,
+  BookOpenCheck
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -48,12 +50,17 @@ interface Book {
   category: Category;
   parts: number;
   cover: string;
+  content?: string;
 }
+
+const SURA_NAMES = [
+  "Al-Fatihah", "Al-Baqarah", "Al-Imran", "An-Nisa", "Al-Ma'idah", "Al-An'am", "Al-A'raf", "Al-Anfal", "At-Tawbah", "Yunus", "Hud", "Yusuf", "Ar-Ra'd", "Ibrahim", "Al-Hijr", "An-Nahl", "Al-Isra", "Al-Kahf", "Maryam", "Ta-Ha", "Al-Anbiya", "Al-Hajj", "Al-Mu'minun", "An-Nur", "Al-Furqan", "Ash-Shu'ara", "An-Naml", "Al-Qasas", "Al-'Ankabut", "Ar-Rum", "Luqman", "As-Sajdah", "Al-Ahzab", "Saba", "Fatir", "Ya-Sin", "As-Saffat", "Sad", "Az-Zumar", "Ghafir", "Fussilat", "Ash-Shura", "Az-Zukhruf", "Ad-Dukhan", "Al-Jathiyah", "Al-Ahqaf", "Muhammad", "Al-Fath", "Al-Hujurat", "Qaf", "Adh-Dhariyat", "At-Tur", "An-Najm", "Al-Qamar", "Ar-Rahman", "Al-Waqi'ah", "Al-Hadid", "Al-Mujadilah", "Al-Hashr", "Al-Mumtahanah", "As-Saff", "Al-Jumu'ah", "Al-Munafiqun", "At-Taghabun", "At-Talaq", "At-Tahrim", "Al-Mulk", "Al-Qalam", "Al-Haqqah", "Al-Ma'arij", "Nuh", "Al-Jinn", "Al-Muzzammil", "Al-Muddaththir", "Al-Qiyamah", "Al-Insan", "Al-Mursalat", "An-Naba", "An-Nazi'at", "'Abasa", "At-Takwir", "Al-Infitar", "Al-Mutaffifin", "Al-Inshiqaq", "Al-Buruj", "At-Tariq", "Al-A'la", "Al-Ghashiyah", "Al-Fajr", "Al-Balad", "Ash-Shams", "Al-Layl", "Ad-Duha", "Ash-Sharh", "At-Tin", "Al-'Alaq", "Al-Qadr", "Al-Bayyinah", "Az-Zalzalah", "Al-'Adiyat", "Al-Qari'ah", "At-Takathur", "Al-'Asr", "Al-Humazah", "Al-Fil", "Quraysh", "Al-Ma'un", "Al-Kawthar", "Al-Kafirun", "An-Nasr", "Al-Masad", "Al-Ikhlas", "Al-Falaq", "An-Nas"
+];
 
 const generate1000Books = (): Book[] => {
   const books: Book[] = [];
   const categories: Category[] = [
-    "Science", "ICT", "Qur'an", "Hadiths", "Islam", "Christian", 
+    "Science", "ICT", "Hadiths", "Islam", "Christian", 
     "History", "Laws", "Philosophy", "Literature", "Arts", "Biographies",
     "Economics", "Health", "Physiology", "Psychology", "Engineering"
   ];
@@ -61,7 +68,7 @@ const generate1000Books = (): Book[] => {
   const categoryTemplates: Record<Category, string[]> = {
     "Science": ["Principles of Physics", "Quantum Mechanics Intro", "Organic Chemistry Mastery", "Evolutionary Biology", "Modern Astrophysics", "Genetic Engineering", "Neuroscience Fundamentals", "General Relativity", "Chemical Engineering", "Botany Studies"],
     "ICT": ["Cloud Computing Architecture", "Advanced Python for Data", "Cybersecurity Shield", "React Native Development", "AI Ethics & Robotics", "Blockchain Ledger Systems", "Mastering UI/UX Design", "System Design Patterns", "Networking Essentials", "Database Management"],
-    "Qur'an": ["Surah Al-Baqarah Exegesis", "The Holy Qur'an Translation", "Rules of Tajweed", "Tafsir Al-Jalalayn Complete", "Qur'anic Arabic Grammar", "History of Revelation", "Verses of Wisdom", "The Eternal Message"],
+    "Qur'an": [],
     "Hadiths": ["Sahih Al-Bukhari Volume", "Gems of Sahih Muslim", "Riyadh as-Salihin", "40 Hadith of An-Nawawi", "Sunan Abi Dawud Studies", "Science of Hadith", "The Prophetic Lifestyle", "Authentic Narrations"],
     "Islam": ["Fiqh of Ibadah", "Early Islamic History", "Biographies of Prophets", "Sufism & Spirituality", "Hajj & Umrah Handbook", "Principles of Zakat", "Shariah Law Essentials", "Philosophy of the Deen"],
     "Christian": ["The Holy Bible (KJV)", "New Testament Commentary", "Psalms & Proverbs Study", "Christian Church History", "Systematic Theology", "Analysis of the Gospels", "Old Testament Kings", "Epistles of Apostle Paul"],
@@ -92,7 +99,8 @@ const generate1000Books = (): Book[] => {
       author: authors[i % authors.length],
       category: cat,
       parts: (i % 12) + 1,
-      cover: `https://picsum.photos/seed/book${i}/200/300`
+      cover: `https://picsum.photos/seed/book${i}/200/300`,
+      content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
     });
   }
   return books;
@@ -103,8 +111,11 @@ const MASTER_LIBRARY = generate1000Books();
 export default function LibraryPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [view, setView] = useState<"landing" | "books">("landing");
+  const [view, setView] = useState<"landing" | "books" | "quran-drill" | "surah-list" | "reader">("landing");
   const [selectedCategory, setSelectedCategory] = useState<Category>("All");
+  const [quranType, setQuranType] = useState<string | null>(null);
+  const [selectedSurah, setSelectedSurah] = useState<string | null>(null);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(50);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -112,7 +123,7 @@ export default function LibraryPage() {
   const categories: { name: Category; icon: any; color: string }[] = [
     { name: "Science", icon: FlaskConical, color: "text-blue-500 bg-blue-50" },
     { name: "ICT", icon: Cpu, color: "text-indigo-500 bg-indigo-50" },
-    { name: "Qur'an", icon: BookMarked, color: "text-green-600 bg-green-50" },
+    { name: "Qur'an", icon: BookMarked, color: "text-emerald-600 bg-emerald-50" },
     { name: "Hadiths", icon: Heart, color: "text-emerald-500 bg-emerald-50" },
     { name: "Islam", icon: Library, color: "text-teal-500 bg-teal-50" },
     { name: "Christian", icon: Cross, color: "text-purple-500 bg-purple-50" },
@@ -150,6 +161,27 @@ export default function LibraryPage() {
     setVisibleCount(50);
   }, [selectedCategory, searchQuery]);
 
+  const handleCategorySelect = (cat: Category) => {
+    setSelectedCategory(cat);
+    if (cat === "Qur'an") {
+      setView("quran-drill");
+    } else {
+      setView("books");
+    }
+  };
+
+  const openReader = (book: any) => {
+    setSelectedBook(book);
+    setView("reader");
+  };
+
+  const getSurahContent = (surah: string, type: string) => {
+    if (type === "Hausa Subtitles") return `Tafsiri da bayani akan Suratul ${surah} a yaren Hausa don amfanin al'umma.`;
+    if (type === "English Subtitles") return `Explanation and translation of Surah ${surah} in English for global readers.`;
+    if (type === "Warash") return `Qira'at na Warash 'an Nafi' ga Suratul ${surah}.`;
+    return `Qira'at na Hafs 'an 'Asim ga Suratul ${surah}.`;
+  };
+
   if (view === "landing") {
     return (
       <div className="min-h-screen bg-background p-4">
@@ -161,21 +193,21 @@ export default function LibraryPage() {
             <h1 className="text-2xl font-bold">World Library</h1>
           </div>
 
-          <Card className="bg-primary text-white border-none shadow-xl overflow-hidden relative">
+          <Card className="bg-emerald-600 text-white border-none shadow-xl overflow-hidden relative">
             <div className="absolute right-0 bottom-0 opacity-10 rotate-12 scale-150">
               <Library size={180} />
             </div>
             <CardContent className="p-8 space-y-4">
               <div className="space-y-2">
-                <Badge className="bg-white/20 text-white border-none mb-2">1,000 Verified Titles</Badge>
+                <Badge className="bg-white/20 text-white border-none mb-2">1,000+ Verified Titles</Badge>
                 <h2 className="text-3xl font-bold">Search Knowledge</h2>
-                <p className="text-primary-foreground/80">Every major religious and educational text is here.</p>
+                <p className="text-white/80">Qur'an, Hadiths, ICT, and major educational texts available.</p>
               </div>
               <div className="pt-2">
                  <div className="relative">
-                    <Search className="absolute left-3 top-3 h-5 w-5 text-primary" />
+                    <Search className="absolute left-3 top-3 h-5 w-5 text-emerald-600" />
                     <Input 
-                      placeholder="Search books or authors..." 
+                      placeholder="Search books or surahs..." 
                       className="pl-10 h-12 bg-white text-foreground rounded-xl border-none shadow-sm focus-visible:ring-white"
                       value={searchQuery}
                       onChange={(e) => {
@@ -185,29 +217,22 @@ export default function LibraryPage() {
                     />
                   </div>
               </div>
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-none backdrop-blur-md rounded-xl h-14" onClick={() => setView("books")}>
-                  <Library className="h-5 w-5 mr-2" /> Library
-                </Button>
-                <Button variant="secondary" className="bg-white text-primary hover:bg-white/90 rounded-xl h-14" onClick={() => setView("books")}>
-                  <BookOpen className="h-5 w-5 mr-2" /> All Books
+              <div className="grid grid-cols-1 gap-3 pt-2">
+                <Button className="bg-white text-emerald-600 hover:bg-white/90 rounded-xl h-14 font-bold" onClick={() => setView("books")}>
+                  <BookOpen className="h-5 w-5 mr-2" /> Browse All Books
                 </Button>
               </div>
             </CardContent>
           </Card>
 
           <h3 className="font-bold text-lg">Browse Categories</h3>
-          
           <div className="grid grid-cols-2 gap-4">
             {categories.map((cat) => (
               <Button 
                 key={cat.name} 
                 variant="outline" 
                 className="h-24 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all group text-left px-4"
-                onClick={() => {
-                  setSelectedCategory(cat.name);
-                  setView("books");
-                }}
+                onClick={() => handleCategorySelect(cat.name)}
               >
                 <div className={`w-10 h-10 ${cat.color} rounded-full flex items-center justify-center group-hover:scale-110 transition-transform`}>
                   <cat.icon className="h-5 w-5" />
@@ -216,6 +241,146 @@ export default function LibraryPage() {
               </Button>
             ))}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === "quran-drill") {
+    const quranOptions = [
+      { name: "English Subtitles", icon: Globe, color: "text-blue-600 bg-blue-50" },
+      { name: "Hausa Subtitles", icon: Languages, color: "text-red-600 bg-red-50" },
+      { name: "Warash", icon: BookCopy, color: "text-purple-600 bg-purple-50" },
+      { name: "Hafs", icon: BookOpenCheck, color: "text-emerald-600 bg-emerald-50" },
+    ];
+
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <div className="max-w-md mx-auto space-y-6">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => setView("landing")} className="rounded-full bg-white shadow-sm">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-2xl font-bold">The Holy Qur'an</h1>
+          </div>
+          <p className="text-sm text-muted-foreground font-medium">Select your preferred recitation or translation type:</p>
+          <div className="grid gap-4">
+            {quranOptions.map(opt => (
+              <Button 
+                key={opt.name}
+                variant="outline"
+                className="h-20 flex items-center justify-between rounded-3xl bg-white border-none shadow-sm hover:shadow-md px-6 group"
+                onClick={() => {
+                  setQuranType(opt.name);
+                  setView("surah-list");
+                }}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 ${opt.color} rounded-2xl flex items-center justify-center`}>
+                    <opt.icon className="h-6 w-6" />
+                  </div>
+                  <span className="font-bold">{opt.name}</span>
+                </div>
+                <ChevronDown className="h-5 w-5 -rotate-90 text-muted-foreground" />
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === "surah-list") {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <div className="max-w-md mx-auto space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="icon" onClick={() => setView("quran-drill")} className="rounded-full bg-white shadow-sm">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <h1 className="text-2xl font-bold">{quranType}</h1>
+            </div>
+            <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 font-bold uppercase text-[10px]">114 Surahs</Badge>
+          </div>
+
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+            <Input 
+              placeholder="Search surah name..." 
+              className="pl-10 h-12 bg-white rounded-xl border-none shadow-sm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+
+          <div className="grid gap-3 max-h-[70vh] overflow-y-auto pr-1 scrollbar-hide pb-20">
+            {SURA_NAMES.filter(s => s.toLowerCase().includes(searchQuery.toLowerCase())).map((name, idx) => (
+              <Card key={idx} className="border-none shadow-sm hover:shadow-md transition-all rounded-2xl overflow-hidden cursor-pointer bg-white" onClick={() => {
+                setSelectedSurah(name);
+                setView("reader");
+              }}>
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs border border-emerald-100">
+                      {idx + 1}
+                    </div>
+                    <span className="font-bold text-sm">{name}</span>
+                  </div>
+                  <Button size="sm" variant="ghost" className="text-emerald-600 font-bold text-xs uppercase h-8">
+                    READ
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === "reader") {
+    const isQuran = !!selectedSurah;
+    const title = isQuran ? selectedSurah : selectedBook?.title;
+    const author = isQuran ? quranType : selectedBook?.author;
+    const content = isQuran ? getSurahContent(selectedSurah!, quranType!) : selectedBook?.content;
+
+    return (
+      <div className="min-h-screen bg-white p-6 flex flex-col">
+        <div className="flex items-center justify-between mb-8">
+          <Button variant="ghost" size="icon" onClick={() => {
+            if (isQuran) {
+              setView("surah-list");
+              setSelectedSurah(null);
+            } else {
+              setView("books");
+              setSelectedBook(null);
+            }
+          }} className="rounded-full bg-slate-50">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="rounded-full text-[10px] font-bold">A-</Button>
+            <Button variant="outline" size="sm" className="rounded-full text-[10px] font-bold">A+</Button>
+          </div>
+        </div>
+
+        <div className="flex-1 max-w-2xl mx-auto space-y-6">
+          <div className="text-center space-y-2 border-b pb-6">
+            <h1 className="text-3xl font-bold">{title}</h1>
+            <p className="text-emerald-600 font-bold text-sm uppercase tracking-widest">{author}</p>
+          </div>
+          <div className="prose prose-slate mt-8 text-lg leading-relaxed text-slate-700">
+            <p className="first-letter:text-5xl first-letter:font-bold first-letter:text-emerald-600 first-letter:mr-3 first-letter:float-left">
+              {content}
+            </p>
+            <p className="mt-4">{content}</p>
+            <p className="mt-4">{content}</p>
+          </div>
+        </div>
+
+        <div className="mt-auto py-6 border-t flex justify-center">
+          <p className="text-[10px] text-muted-foreground uppercase font-bold">End of Preview - Premium content secured</p>
         </div>
       </div>
     );
@@ -232,7 +397,7 @@ export default function LibraryPage() {
             <div>
               <h1 className="text-2xl font-bold">Book Catalog</h1>
               <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <CheckCircle2 className="h-3 w-3 text-primary" /> 1,000 Verified Books
+                <CheckCircle2 className="h-3 w-3 text-primary" /> {filteredBooks.length.toLocaleString()} Titles Available
               </p>
             </div>
           </div>
@@ -242,7 +407,7 @@ export default function LibraryPage() {
           <div className="relative">
             <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
             <Input 
-              placeholder="Search 1,000 books..." 
+              placeholder="Search knowledge..." 
               className="pl-10 h-12 bg-white rounded-xl border-none shadow-sm focus-visible:ring-primary"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -264,7 +429,7 @@ export default function LibraryPage() {
                 size="sm" 
                 variant={selectedCategory === cat.name ? "default" : "outline"} 
                 className="rounded-full px-4 flex items-center gap-1 shrink-0"
-                onClick={() => setSelectedCategory(cat.name)}
+                onClick={() => handleCategorySelect(cat.name)}
               >
                 <cat.icon className="h-3 w-3" /> {cat.name}
               </Button>
@@ -272,7 +437,7 @@ export default function LibraryPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pb-20">
           {filteredBooks.slice(0, visibleCount).map((book) => (
             <Card key={book.id} className="border-none shadow-sm hover:shadow-md transition-all overflow-hidden bg-white">
               <div className="flex h-44">
@@ -281,15 +446,15 @@ export default function LibraryPage() {
                 </div>
                 <div className="flex-1 p-3 flex flex-col justify-between">
                   <div className="space-y-1">
-                    <Badge variant="secondary" className="bg-primary/10 text-primary text-[9px] uppercase font-bold px-2 mb-1">
+                    <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 text-[9px] uppercase font-bold px-2 mb-1">
                       {book.category}
                     </Badge>
                     <h4 className="font-bold text-xs leading-tight line-clamp-2">{book.title}</h4>
                     <p className="text-[9px] text-muted-foreground italic truncate">by {book.author}</p>
-                    <p className="text-[10px] font-medium text-secondary mt-1">{book.parts} Parts</p>
+                    <p className="text-[10px] font-medium text-emerald-600 mt-1">{book.parts} Parts</p>
                   </div>
-                  <Button size="sm" className="w-full bg-primary hover:bg-primary/90 h-8 text-[10px] font-bold" onClick={() => toast({ title: "Downloading", description: `${book.title} is being saved offline.` })}>
-                    <Download className="h-3 w-3 mr-1" /> GET BOOK
+                  <Button size="sm" className="w-full bg-emerald-600 hover:bg-emerald-700 h-8 text-[10px] font-bold" onClick={() => openReader(book)}>
+                    <BookOpen className="h-3 w-3 mr-1" /> READ BOOK
                   </Button>
                 </div>
               </div>
@@ -299,7 +464,7 @@ export default function LibraryPage() {
 
         {visibleCount < filteredBooks.length && (
           <div className="flex justify-center py-10">
-            <Button onClick={loadMore} disabled={isLoadingMore} variant="outline" className="rounded-xl px-10 h-12 border-primary text-primary hover:bg-primary/5">
+            <Button onClick={loadMore} disabled={isLoadingMore} variant="outline" className="rounded-xl px-10 h-12 border-emerald-600 text-emerald-600 hover:bg-emerald-50">
               {isLoadingMore ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ChevronDown className="h-4 w-4 mr-2" />}
               Show More (Viewing {visibleCount} of {filteredBooks.length})
             </Button>
