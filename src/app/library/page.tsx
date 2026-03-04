@@ -100,7 +100,7 @@ const generate1000Books = (): Book[] => {
       category: cat,
       parts: (i % 12) + 1,
       cover: `https://picsum.photos/seed/book${i}/200/300`,
-      content: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
+      content: "This is a comprehensive text covering the fundamental and advanced principles of the subject matter. It serves as a vital resource for scholars and students alike, providing deep insights and analytical frameworks for professional practice."
     });
   }
   return books;
@@ -114,11 +114,13 @@ export default function LibraryPage() {
   const [view, setView] = useState<"landing" | "books" | "quran-drill" | "surah-list" | "reader">("landing");
   const [selectedCategory, setSelectedCategory] = useState<Category>("All");
   const [quranType, setQuranType] = useState<string | null>(null);
-  const [selectedSurah, setSelectedSurah] = useState<string | null>(null);
+  const [selectedSurah, setSelectedSurah] = useState<{name: string, index: number} | null>(null);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(50);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [quranContent, setQuranContent] = useState<any>(null);
+  const [isReaderLoading, setIsReaderLoading] = useState(false);
 
   const categories: { name: Category; icon: any; color: string }[] = [
     { name: "Science", icon: FlaskConical, color: "text-blue-500 bg-blue-50" },
@@ -161,6 +163,46 @@ export default function LibraryPage() {
     setVisibleCount(50);
   }, [selectedCategory, searchQuery]);
 
+  useEffect(() => {
+    if (view === "reader" && selectedSurah) {
+      fetchSurahContent();
+    }
+  }, [view, selectedSurah, quranType]);
+
+  const fetchSurahContent = async () => {
+    if (!selectedSurah) return;
+    setIsReaderLoading(true);
+    try {
+      // Map quranType to edition identifiers
+      const editionMap: Record<string, string> = {
+        "English Subtitles": "en.sahih",
+        "Hausa Subtitles": "ha.gumi",
+        "Warash": "quran-warsh-n",
+        "Hafs": "quran-uthmani"
+      };
+      
+      const edition = editionMap[quranType!] || "quran-uthmani";
+      const arabicEdition = "quran-uthmani";
+
+      const [arabicRes, translationRes] = await Promise.all([
+        fetch(`https://api.alquran.cloud/v1/surah/${selectedSurah.index + 1}/${arabicEdition}`),
+        fetch(`https://api.alquran.cloud/v1/surah/${selectedSurah.index + 1}/${edition}`)
+      ]);
+
+      const arabicData = await arabicRes.json();
+      const translationData = await translationRes.json();
+
+      setQuranContent({
+        arabic: arabicData.data,
+        translation: translationData.data
+      });
+    } catch (err) {
+      toast({ variant: "destructive", title: "API Error", description: "Failed to load Surah content." });
+    } finally {
+      setIsReaderLoading(false);
+    }
+  };
+
   const handleCategorySelect = (cat: Category) => {
     setSelectedCategory(cat);
     if (cat === "Qur'an") {
@@ -173,13 +215,6 @@ export default function LibraryPage() {
   const openReader = (book: any) => {
     setSelectedBook(book);
     setView("reader");
-  };
-
-  const getSurahContent = (surah: string, type: string) => {
-    if (type === "Hausa Subtitles") return `Tafsiri da bayani akan Suratul ${surah} a yaren Hausa don amfanin al'umma.`;
-    if (type === "English Subtitles") return `Explanation and translation of Surah ${surah} in English for global readers.`;
-    if (type === "Warash") return `Qira'at na Warash 'an Nafi' ga Suratul ${surah}.`;
-    return `Qira'at na Hafs 'an 'Asim ga Suratul ${surah}.`;
   };
 
   if (view === "landing") {
@@ -201,7 +236,7 @@ export default function LibraryPage() {
               <div className="space-y-2">
                 <Badge className="bg-white/20 text-white border-none mb-2">1,000+ Verified Titles</Badge>
                 <h2 className="text-3xl font-bold">Search Knowledge</h2>
-                <p className="text-white/80">Qur'an, Hadiths, ICT, and major educational texts available.</p>
+                <p className="text-white/80">Qur'an, Hadiths, ICT, Physiology and major educational texts available.</p>
               </div>
               <div className="pt-2">
                  <div className="relative">
@@ -317,7 +352,8 @@ export default function LibraryPage() {
           <div className="grid gap-3 max-h-[70vh] overflow-y-auto pr-1 scrollbar-hide pb-20">
             {SURA_NAMES.filter(s => s.toLowerCase().includes(searchQuery.toLowerCase())).map((name, idx) => (
               <Card key={idx} className="border-none shadow-sm hover:shadow-md transition-all rounded-2xl overflow-hidden cursor-pointer bg-white" onClick={() => {
-                setSelectedSurah(name);
+                const originalIndex = SURA_NAMES.indexOf(name);
+                setSelectedSurah({name, index: originalIndex});
                 setView("reader");
               }}>
                 <CardContent className="p-4 flex items-center justify-between">
@@ -341,17 +377,17 @@ export default function LibraryPage() {
 
   if (view === "reader") {
     const isQuran = !!selectedSurah;
-    const title = isQuran ? selectedSurah : selectedBook?.title;
+    const title = isQuran ? selectedSurah.name : selectedBook?.title;
     const author = isQuran ? quranType : selectedBook?.author;
-    const content = isQuran ? getSurahContent(selectedSurah!, quranType!) : selectedBook?.content;
 
     return (
-      <div className="min-h-screen bg-white p-6 flex flex-col">
+      <div className="min-h-screen bg-white p-4 flex flex-col">
         <div className="flex items-center justify-between mb-8">
           <Button variant="ghost" size="icon" onClick={() => {
             if (isQuran) {
               setView("surah-list");
               setSelectedSurah(null);
+              setQuranContent(null);
             } else {
               setView("books");
               setSelectedBook(null);
@@ -365,22 +401,49 @@ export default function LibraryPage() {
           </div>
         </div>
 
-        <div className="flex-1 max-w-2xl mx-auto space-y-6">
+        <div className="flex-1 max-w-2xl mx-auto w-full space-y-6">
           <div className="text-center space-y-2 border-b pb-6">
-            <h1 className="text-3xl font-bold">{title}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold">{title}</h1>
             <p className="text-emerald-600 font-bold text-sm uppercase tracking-widest">{author}</p>
           </div>
-          <div className="prose prose-slate mt-8 text-lg leading-relaxed text-slate-700">
-            <p className="first-letter:text-5xl first-letter:font-bold first-letter:text-emerald-600 first-letter:mr-3 first-letter:float-left">
-              {content}
-            </p>
-            <p className="mt-4">{content}</p>
-            <p className="mt-4">{content}</p>
-          </div>
+
+          {isReaderLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <Loader2 className="h-10 w-10 animate-spin text-emerald-600" />
+              <p className="text-sm font-bold text-emerald-600">Retrieving Sacred Text...</p>
+            </div>
+          ) : isQuran && quranContent ? (
+            <div className="space-y-12 py-8">
+              {quranContent.arabic.ayahs.map((ayah: any, i: number) => (
+                <div key={ayah.number} className="space-y-6 border-b border-slate-100 pb-10">
+                  <div className="flex justify-between items-start">
+                    <Badge variant="outline" className="text-[10px] font-mono opacity-50">{ayah.numberInSurah}</Badge>
+                    <p 
+                      className="text-right text-3xl leading-[3.5rem] font-medium font-arabic text-slate-900" 
+                      style={{ direction: 'rtl', fontFamily: 'var(--font-arabic)' }}
+                    >
+                      {ayah.text}
+                    </p>
+                  </div>
+                  <p className="text-slate-600 leading-relaxed text-lg">
+                    {quranContent.translation.ayahs[i].text}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="prose prose-slate mt-8 text-lg leading-relaxed text-slate-700">
+              <p className="first-letter:text-5xl first-letter:font-bold first-letter:text-emerald-600 first-letter:mr-3 first-letter:float-left">
+                {selectedBook?.content}
+              </p>
+              <p className="mt-4">{selectedBook?.content}</p>
+              <p className="mt-4">{selectedBook?.content}</p>
+            </div>
+          )}
         </div>
 
-        <div className="mt-auto py-6 border-t flex justify-center">
-          <p className="text-[10px] text-muted-foreground uppercase font-bold">End of Preview - Premium content secured</p>
+        <div className="mt-auto py-6 border-t flex justify-center sticky bottom-0 bg-white">
+          <p className="text-[10px] text-muted-foreground uppercase font-bold">Verified Knowledge Center</p>
         </div>
       </div>
     );
