@@ -24,13 +24,20 @@ import {
   Globe,
   Palette,
   Lightbulb,
-  UserCircle
+  UserCircle,
+  TrendingUp,
+  Stethoscope,
+  Brain,
+  Wrench
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
-type Category = "All" | "Science" | "ICT" | "Qur'an" | "Hadiths" | "Islam" | "Christian" | "History" | "Laws" | "Philosophy" | "Literature" | "Arts" | "Biographies";
+type Category = 
+  | "All" | "Science" | "ICT" | "Qur'an" | "Hadiths" | "Islam" | "Christian" 
+  | "History" | "Laws" | "Philosophy" | "Literature" | "Arts" | "Biographies"
+  | "Economics" | "Health" | "Psychology" | "Engineering";
 
 interface Book {
   id: string;
@@ -41,31 +48,121 @@ interface Book {
   cover: string;
 }
 
-// Comprehensive generator for exactly 1000 unique book entries
 const generate1000Books = (): Book[] => {
   const books: Book[] = [];
   const categories: Category[] = [
     "Science", "ICT", "Qur'an", "Hadiths", "Islam", "Christian", 
-    "History", "Laws", "Philosophy", "Literature", "Arts", "Biographies"
+    "History", "Laws", "Philosophy", "Literature", "Arts", "Biographies",
+    "Economics", "Health", "Psychology", "Engineering"
   ];
   
   const categoryTemplates: Record<Category, string[]> = {
-    "Science": ["Physics Fundamentals", "Quantum Mechanics", "Organic Chemistry", "Evolutionary Biology", "Astrophysics", "Genetics Today", "Neuroscience Intro", "General Relativity", "Chemical Engineering", "Botany Studies"],
-    "ICT": ["Cloud Architecture", "Python for Data", "Cybersecurity Shield", "React Native Pro", "AI & Ethics", "Blockchain Ledger", "UI/UX Mastery", "System Design", "Networking Basics", "Database Management"],
-    "Qur'an": ["Surah Al-Baqarah Study", "The Noble Qur'an", "Tajweed Guide", "Tafsir Al-Jalalayn", "Qur'anic Arabic", "Chronology of Revelation", "Verses of Wisdom", "The Holy Message", "Qur'an Recitation", "Linguistic Miracles"],
-    "Hadiths": ["Sahih Al-Bukhari Vol", "Sahih Muslim Gems", "Riyadh as-Salihin", "40 Hadith Nawawi", "Sunan Abi Dawud", "Hadith Science", "The Prophetic Way", "Authentic Narrations", "Ethics in Hadith", "Daily Adhkar"],
-    "Islam": ["Fiqh of Worship", "Islamic History", "Lives of Prophets", "Sufism Insights", "Hajj & Umrah Guide", "Zakat Principles", "Islamic Law", "Philosophy of Deen", "Great Scholars", "Modern Islamic Thought"],
-    "Christian": ["The Holy Bible (KJV)", "New Testament Study", "Psalms & Proverbs", "Church History", "Systematic Theology", "Gospel Analysis", "Old Testament Kings", "Epistles of Paul", "Biblical Prophecy", "Christian Ethics"],
-    "History": ["African Kingdoms", "Ancient Rome", "The Industrial Era", "World War II Docs", "Medieval Europe", "Cold War Secrets", "Ancient Egypt", "History of Nigeria", "The Renaissance", "Global Revolutions"],
-    "Laws": ["Constitutional Law", "Criminal Justice", "International Treaties", "Human Rights Law", "Corporate Legalities", "Environmental Acts", "Legal Ethics", "Property Law", "Civil Rights History", "Global Jurisprudence"],
-    "Philosophy": ["Meditations on Existence", "The Republic Study", "Beyond Good and Evil", "The Art of War", "Critique of Pure Reason", "Eastern Wisdom", "Logic & Reason", "Existentialism Intro", "The Social Contract", "Ethics of Antiquity"],
-    "Literature": ["Classic Poetry", "Shakespeare's Sonnets", "Modernist Prose", "The Odyssey Retold", "Anthology of Drama", "Victorian Novels", "Symbolist Movement", "The Epic of Gilgamesh", "Gothic Fiction", "Post-Colonial Tales"],
-    "Arts": ["Renaissance Masters", "Abstract Expressionism", "History of Sculpture", "Musical Theory", "Cinema Esthetics", "Architectural Wonders", "The Color Theory", "Gothic Art", "Impressionist Light", "Digital Art Evolution"],
-    "Biographies": ["Nelson Mandela: A Long Walk", "Steve Jobs: The Visionary", "Malala: The Voice", "Einstein: The Genius", "Marie Curie: Radiation", "Malcolm X: Legacy", "Da Vinci: The Polymath", "Cleopatra: Queen", "Lincoln: The Unifier", "Mao: The Revolution"],
+    "Science": [
+      "Physics Fundamentals", "Quantum Mechanics", "Organic Chemistry", "Evolutionary Biology", 
+      "Astrophysics", "Genetics Today", "Neuroscience Intro", "General Relativity", 
+      "Chemical Engineering", "Botany Studies", "Nuclear Physics", "Marine Biology", 
+      "Theoretical Physics", "Geology Basics", "Molecular Biology"
+    ],
+    "ICT": [
+      "Cloud Architecture", "Python for Data", "Cybersecurity Shield", "React Native Pro", 
+      "AI & Ethics", "Blockchain Ledger", "UI/UX Mastery", "System Design", 
+      "Networking Basics", "Database Management", "Kubernetes in Action", "Frontend Wizardry",
+      "Backend Scalability", "Machine Learning Ops", "DevOps Handbook"
+    ],
+    "Qur'an": [
+      "Surah Al-Baqarah Study", "The Noble Qur'an", "Tajweed Guide", "Tafsir Al-Jalalayn", 
+      "Qur'anic Arabic", "Chronology of Revelation", "Verses of Wisdom", "The Holy Message", 
+      "Qur'an Recitation", "Linguistic Miracles", "Divine Guidance", "Light of Faith",
+      "Qur'anic Stories", "Message of Peace", "The Final Testament"
+    ],
+    "Hadiths": [
+      "Sahih Al-Bukhari Vol", "Sahih Muslim Gems", "Riyadh as-Salihin", "40 Hadith Nawawi", 
+      "Sunan Abi Dawud", "Hadith Science", "The Prophetic Way", "Authentic Narrations", 
+      "Ethics in Hadith", "Daily Adhkar", "Sayings of Muhammad", "The Sunnah Code",
+      "Golden Chains", "Hadith Methodology", "Path to Paradise"
+    ],
+    "Islam": [
+      "Fiqh of Worship", "Islamic History", "Lives of Prophets", "Sufism Insights", 
+      "Hajj & Umrah Guide", "Zakat Principles", "Islamic Law", "Philosophy of Deen", 
+      "Great Scholars", "Modern Islamic Thought", "The Pillars of Islam", "Islamic Civilization",
+      "Muslim Spain", "Ottoman Empire", "The Caliphate Legacy"
+    ],
+    "Christian": [
+      "The Holy Bible (KJV)", "New Testament Study", "Psalms & Proverbs", "Church History", 
+      "Systematic Theology", "Gospel Analysis", "Old Testament Kings", "Epistles of Paul", 
+      "Biblical Prophecy", "Christian Ethics", "Walk with Christ", "The Reformation",
+      "Orthodox Traditions", "Catholic Catechism", "Global Missions"
+    ],
+    "History": [
+      "African Kingdoms", "Ancient Rome", "The Industrial Era", "World War II Docs", 
+      "Medieval Europe", "Cold War Secrets", "Ancient Egypt", "History of Nigeria", 
+      "The Renaissance", "Global Revolutions", "Silk Road Traders", "Mughal Empire",
+      "Aztec Civilization", "The Great Depression", "Modern Age History"
+    ],
+    "Laws": [
+      "Constitutional Law", "Criminal Justice", "International Treaties", "Human Rights Law", 
+      "Corporate Legalities", "Environmental Acts", "Legal Ethics", "Property Law", 
+      "Civil Rights History", "Global Jurisprudence", "Intellectual Property", "Family Law",
+      "Maritime Law", "Labor Standards", "The Bill of Rights"
+    ],
+    "Philosophy": [
+      "Meditations on Existence", "The Republic Study", "Beyond Good and Evil", "The Art of War", 
+      "Critique of Pure Reason", "Eastern Wisdom", "Logic & Reason", "Existentialism Intro", 
+      "The Social Contract", "Ethics of Antiquity", "Stoic Resilience", "Plato's Dialogues",
+      "Aristotle's Logic", "Nihilism Explored", "Zen Philosophy"
+    ],
+    "Literature": [
+      "Classic Poetry", "Shakespeare's Sonnets", "Modernist Prose", "The Odyssey Retold", 
+      "Anthology of Drama", "Victorian Novels", "Symbolist Movement", "The Epic of Gilgamesh", 
+      "Gothic Fiction", "Post-Colonial Tales", "Beowulf Translation", "Russian Realism",
+      "Magic Realism", "African Literature", "Beat Generation Poetry"
+    ],
+    "Arts": [
+      "Renaissance Masters", "Abstract Expressionism", "History of Sculpture", "Musical Theory", 
+      "Cinema Esthetics", "Architectural Wonders", "The Color Theory", "Gothic Art", 
+      "Impressionist Light", "Digital Art Evolution", "Cubism Movement", "Baroque Design",
+      "Photography Art", "Surrealist Dreams", "Ancient Pottery"
+    ],
+    "Biographies": [
+      "Nelson Mandela: A Long Walk", "Steve Jobs: The Visionary", "Malala: The Voice", 
+      "Einstein: The Genius", "Marie Curie: Radiation", "Malcolm X: Legacy", 
+      "Da Vinci: The Polymath", "Cleopatra: Queen", "Lincoln: The Unifier", 
+      "Mao: The Revolution", "Churchill: The Bulldog", "Frida Kahlo: Spirit",
+      "Martin Luther King Jr.", "Alexander the Great", "Catherine the Great"
+    ],
+    "Economics": [
+      "The Wealth of Nations", "Capital in 21st Century", "Macroeconomics Intro", "Stock Market Mastery",
+      "Behavioral Economics", "Global Trade Policy", "The Fed & Money", "Corporate Finance",
+      "Game Theory Basics", "Economic History", "Crypto Economy", "Venture Capital",
+      "Taxation Law", "Poverty & Progress", "Microfinance impact"
+    ],
+    "Health": [
+      "Human Anatomy", "Nutrition Science", "Mental Wellness", "First Aid Manual",
+      "Cardiology Intro", "Public Health Policy", "Yoga & Health", "The Immune System",
+      "Pharmacology", "Alternative Medicine", "Global Pandemics", "Sleep Science",
+      "Geriatric Care", "Pediatric Health", "Fitness Biology"
+    ],
+    "Psychology": [
+      "Interpretation of Dreams", "Cognitive Behavioral", "Social Psychology", "Child Development",
+      "Clinical Psychiatry", "Memory & Learning", "Emotions & Logic", "Personality Types",
+      "Group Dynamics", "Forensic Psychology", "Positive Psychology", "Intelligence Testing",
+      "Habit Formation", "Dark Psychology", "Spiritual Healing"
+    ],
+    "Engineering": [
+      "Civil Engineering", "Mechanical Dynamics", "Electrical Circuits", "Aerospace Design",
+      "Robotics Intro", "Software Engineering", "Renewable Energy", "Bridge Construction",
+      "Auto Engineering", "Materials Science", "Fluid Mechanics", "Thermodynamics",
+      "Nanotechnology", "Urban Planning", "Safety Protocols"
+    ],
     "All": []
   };
 
-  const authors = ["Dr. Ahmed Lere", "Prof. Jane Smith", "Imam Malik", "Justice Roberts", "Scholar John", "Apostle Paul", "Historian Musa", "Barrister Bello", "Dr. Sarah", "Sheikh Ibrahim", "Dr. Marcus Aurelius", "Homer", "William Shakespeare"];
+  const authors = [
+    "Dr. Ahmed Lere", "Prof. Jane Smith", "Imam Malik", "Justice Roberts", 
+    "Scholar John", "Apostle Paul", "Historian Musa", "Barrister Bello", 
+    "Dr. Sarah", "Sheikh Ibrahim", "Dr. Marcus Aurelius", "Homer", 
+    "William Shakespeare", "Karl Marx", "Adam Smith", "Sigmund Freud"
+  ];
 
   for (let i = 1; i <= 1000; i++) {
     const cat = categories[i % categories.length];
@@ -108,6 +205,10 @@ export default function LibraryPage() {
     { name: "Literature", icon: Globe, color: "text-rose-500 bg-rose-50" },
     { name: "Arts", icon: Palette, color: "text-cyan-500 bg-cyan-50" },
     { name: "Biographies", icon: UserCircle, color: "text-violet-500 bg-violet-50" },
+    { name: "Economics", icon: TrendingUp, color: "text-green-500 bg-green-50" },
+    { name: "Health", icon: Stethoscope, color: "text-red-500 bg-red-50" },
+    { name: "Psychology", icon: Brain, color: "text-pink-500 bg-pink-50" },
+    { name: "Engineering", icon: Wrench, color: "text-gray-600 bg-gray-100" },
   ];
 
   const filteredBooks = useMemo(() => {
