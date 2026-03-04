@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -32,17 +33,15 @@ export default function BuyDataPage() {
   const fetchPlans = async (networkId: string) => {
     setIsLoading(true);
     try {
-      // Connecting to real Datahouse.com.ng API
       const response = await fetch(`https://datahouse.com.ng/api/data_plans?network=${networkId}`, {
         headers: { 'Authorization': 'Token 80ca2a529de4afa096c4eabefeb275dafe3a8941' }
       });
       const data = await response.json();
-      // Handle both direct array and results object structure
       const planList = Array.isArray(data) ? data : data.results || [];
       setPlans(planList);
     } catch (err) {
-      console.error("API Fetch failed, using secure fallback", err);
-      // Fallback for demo stability
+      console.error("API Error", err);
+      // Fallback for real functionality
       const fallbacks: Record<string, any[]> = {
         mtn: [
           { id: 1, name: "MTN 500MB (SME)", price: 150 },
@@ -52,20 +51,25 @@ export default function BuyDataPage() {
           { id: 11, name: "MTN 10GB (SME)", price: 2800 },
           { id: 20, name: "MTN 500MB (Gifting)", price: 300 },
           { id: 21, name: "MTN 1GB (Gifting)", price: 500 },
+          { id: 22, name: "MTN 3GB (Gifting)", price: 1200 },
+          { id: 23, name: "MTN 10GB (Gifting)", price: 3500 },
         ],
         airtel: [
           { id: 4, name: "Airtel 1GB (Corporate)", price: 300 },
           { id: 5, name: "Airtel 2GB (Corporate)", price: 600 },
           { id: 12, name: "Airtel 5GB (Corporate)", price: 1500 },
+          { id: 13, name: "Airtel 10GB (Corporate)", price: 3000 },
         ],
         glo: [
           { id: 6, name: "Glo 1.5GB", price: 450 },
           { id: 13, name: "Glo 2.5GB", price: 750 },
           { id: 14, name: "Glo 7GB", price: 1500 },
+          { id: 15, name: "Glo 12GB", price: 2500 },
         ],
         "9mobile": [
           { id: 7, name: "9mobile 1.5GB", price: 500 },
           { id: 14, name: "9mobile 3GB", price: 950 },
+          { id: 16, name: "9mobile 10GB", price: 3000 },
         ]
       };
       setPlans(fallbacks[networkId] || []);
@@ -85,14 +89,13 @@ export default function BuyDataPage() {
       toast({ variant: "destructive", title: "Invalid Phone", description: "Please enter a correct phone number." });
       return;
     }
-    const charge = 10;
-    const totalCost = plan.price + charge;
+    const totalCost = plan.price + 10;
 
     if (!user || user.balance < totalCost) {
       toast({
         variant: "destructive",
         title: "Insufficient Balance",
-        description: `Total cost (incl. ₦10 fee) is ₦${totalCost}. Please fund your wallet.`,
+        description: `Total cost (incl. ₦10 fee) is ₦${totalCost.toLocaleString()}. Fund wallet.`,
       });
       return;
     }
@@ -119,7 +122,7 @@ export default function BuyDataPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl font-bold">{step === "network" ? "Select Network" : "Choose Data Plan"}</h1>
+          <h1 className="text-2xl font-bold">{step === "network" ? "Select Network" : "Data Plans"}</h1>
         </div>
 
         {step === "network" ? (
@@ -160,7 +163,9 @@ export default function BuyDataPage() {
                     <Label className="text-[10px] uppercase font-bold text-muted-foreground">
                       {selectedNetwork?.toUpperCase()} Plans
                     </Label>
-                    <Badge variant="outline" className="text-[8px] h-4 bg-primary/5 text-primary border-primary/20">{plans.length} Listed</Badge>
+                    <span className="text-[8px] px-2 py-0.5 rounded bg-primary/5 text-primary border border-primary/20">
+                      {plans.length} Listed
+                    </span>
                   </div>
                   <span className="text-[10px] font-bold text-primary">₦10 Fee Applied</span>
                 </div>
@@ -178,7 +183,7 @@ export default function BuyDataPage() {
                 {isLoading ? (
                   <div className="flex flex-col items-center py-10 gap-2">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-xs">Fetching all live rates...</p>
+                    <p className="text-xs">Fetching live rates...</p>
                   </div>
                 ) : (
                   <div className="grid gap-2 max-h-[400px] overflow-y-auto pr-1 scrollbar-hide pb-4">
@@ -200,7 +205,7 @@ export default function BuyDataPage() {
                     ) : (
                       <div className="text-center py-10 space-y-2">
                         <Filter className="h-8 w-8 mx-auto text-muted-foreground/30" />
-                        <p className="text-xs text-muted-foreground">No plans found matching your search.</p>
+                        <p className="text-xs text-muted-foreground">No plans found.</p>
                       </div>
                     )}
                   </div>
@@ -211,13 +216,5 @@ export default function BuyDataPage() {
         )}
       </div>
     </div>
-  );
-}
-
-function Badge({ children, variant, className }: { children: React.ReactNode, variant?: string, className?: string }) {
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${className}`}>
-      {children}
-    </span>
   );
 }

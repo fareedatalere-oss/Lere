@@ -29,7 +29,8 @@ import {
   Stethoscope,
   Brain,
   Wrench,
-  Sparkles
+  Sparkles,
+  Dna
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +39,7 @@ import { useToast } from "@/hooks/use-toast";
 type Category = 
   | "All" | "Science" | "ICT" | "Qur'an" | "Hadiths" | "Islam" | "Christian" 
   | "History" | "Laws" | "Philosophy" | "Literature" | "Arts" | "Biographies"
-  | "Economics" | "Health" | "Psychology" | "Engineering";
+  | "Economics" | "Health" | "Physiology" | "Psychology" | "Engineering";
 
 interface Book {
   id: string;
@@ -54,30 +55,31 @@ const generate1000Books = (): Book[] => {
   const categories: Category[] = [
     "Science", "ICT", "Qur'an", "Hadiths", "Islam", "Christian", 
     "History", "Laws", "Philosophy", "Literature", "Arts", "Biographies",
-    "Economics", "Health", "Psychology", "Engineering"
+    "Economics", "Health", "Physiology", "Psychology", "Engineering"
   ];
   
   const categoryTemplates: Record<Category, string[]> = {
-    "Science": ["Physics Fundamentals", "Quantum Mechanics", "Organic Chemistry", "Evolutionary Biology", "Astrophysics", "Genetics Today", "Neuroscience Intro", "General Relativity", "Chemical Engineering", "Botany Studies"],
-    "ICT": ["Cloud Architecture", "Python for Data", "Cybersecurity Shield", "React Native Pro", "AI & Ethics", "Blockchain Ledger", "UI/UX Mastery", "System Design", "Networking Basics", "Database Management"],
-    "Qur'an": ["Surah Al-Baqarah Study", "The Noble Qur'an", "Tajweed Guide", "Tafsir Al-Jalalayn", "Qur'anic Arabic", "Chronology of Revelation", "Verses of Wisdom", "The Holy Message"],
-    "Hadiths": ["Sahih Al-Bukhari Vol", "Sahih Muslim Gems", "Riyadh as-Salihin", "40 Hadith Nawawi", "Sunan Abi Dawud", "Hadith Science", "The Prophetic Way", "Authentic Narrations"],
-    "Islam": ["Fiqh of Worship", "Islamic History", "Lives of Prophets", "Sufism Insights", "Hajj & Umrah Guide", "Zakat Principles", "Islamic Law", "Philosophy of Deen"],
-    "Christian": ["The Holy Bible (KJV)", "New Testament Study", "Psalms & Proverbs", "Church History", "Systematic Theology", "Gospel Analysis", "Old Testament Kings", "Epistles of Paul"],
-    "History": ["African Kingdoms", "Ancient Rome", "The Industrial Era", "World War II Docs", "Medieval Europe", "Cold War Secrets", "Ancient Egypt", "History of Nigeria"],
-    "Laws": ["Constitutional Law", "Criminal Justice", "International Treaties", "Human Rights Law", "Corporate Legalities", "Environmental Acts", "Legal Ethics", "Property Law"],
-    "Philosophy": ["Meditations on Existence", "The Republic Study", "Beyond Good and Evil", "The Art of War", "Critique of Pure Reason", "Eastern Wisdom", "Logic & Reason", "Existentialism Intro"],
-    "Literature": ["Classic Poetry", "Shakespeare's Sonnets", "Modernist Prose", "The Odyssey Retold", "Anthology of Drama", "Victorian Novels", "Symbolist Movement", "The Epic of Gilgamesh"],
-    "Arts": ["Renaissance Masters", "Abstract Expressionism", "History of Sculpture", "Musical Theory", "Cinema Esthetics", "Architectural Wonders", "The Color Theory", "Gothic Art"],
-    "Biographies": ["Nelson Mandela: A Long Walk", "Steve Jobs: The Visionary", "Malala: The Voice", "Einstein: The Genius", "Marie Curie: Radiation", "Malcolm X: Legacy"],
-    "Economics": ["Wealth of Nations", "Capital in 21st Century", "Macroeconomics", "Stock Market Mastery", "Behavioral Economics", "Global Trade Policy", "Digital Currency", "Asset Management"],
-    "Health": ["Anatomy for Students", "Nutrition Science", "Mental Wellness", "Medical Ethics", "Public Health Systems", "Geriatrics Guide", "Pediatric Care", "Virology Today"],
-    "Psychology": ["Interpretation of Dreams", "Behavioral Therapy", "Social Dynamics", "Child Psychology", "Cognitive Science", "Personality Traits", "Emotional Intelligence", "Healing Trauma"],
-    "Engineering": ["Civil Engineering", "Mechanical Dynamics", "Electrical Circuits", "Aero Design", "Structural Integrity", "Robotics Intro", "Renewable Energy", "Material Science"],
+    "Science": ["Principles of Physics", "Quantum Mechanics Intro", "Organic Chemistry Mastery", "Evolutionary Biology", "Modern Astrophysics", "Genetic Engineering", "Neuroscience Fundamentals", "General Relativity", "Chemical Engineering", "Botany Studies"],
+    "ICT": ["Cloud Computing Architecture", "Advanced Python for Data", "Cybersecurity Shield", "React Native Development", "AI Ethics & Robotics", "Blockchain Ledger Systems", "Mastering UI/UX Design", "System Design Patterns", "Networking Essentials", "Database Management"],
+    "Qur'an": ["Surah Al-Baqarah Exegesis", "The Holy Qur'an Translation", "Rules of Tajweed", "Tafsir Al-Jalalayn Complete", "Qur'anic Arabic Grammar", "History of Revelation", "Verses of Wisdom", "The Eternal Message"],
+    "Hadiths": ["Sahih Al-Bukhari Volume", "Gems of Sahih Muslim", "Riyadh as-Salihin", "40 Hadith of An-Nawawi", "Sunan Abi Dawud Studies", "Science of Hadith", "The Prophetic Lifestyle", "Authentic Narrations"],
+    "Islam": ["Fiqh of Ibadah", "Early Islamic History", "Biographies of Prophets", "Sufism & Spirituality", "Hajj & Umrah Handbook", "Principles of Zakat", "Shariah Law Essentials", "Philosophy of the Deen"],
+    "Christian": ["The Holy Bible (KJV)", "New Testament Commentary", "Psalms & Proverbs Study", "Christian Church History", "Systematic Theology", "Analysis of the Gospels", "Old Testament Kings", "Epistles of Apostle Paul"],
+    "History": ["Kingdoms of West Africa", "The Rise of Ancient Rome", "Industrial Revolution Docs", "World War II Chronicles", "Medieval European Politics", "Cold War Secret History", "Ancient Egyptian Dynasty", "Modern History of Nigeria"],
+    "Laws": ["Nigerian Constitutional Law", "Criminal Justice Systems", "International Law Treaties", "Human Rights Advocacy", "Corporate Legal Structures", "Environmental Regulations", "Legal Ethics & Practice", "Property Law Framework"],
+    "Philosophy": ["Meditations on Existence", "Plato's Republic Analysis", "Nietzsche: Beyond Good", "Sun Tzu: The Art of War", "Critique of Pure Reason", "Ancient Eastern Wisdom", "Principles of Logic", "Existentialist Thought"],
+    "Literature": ["Classic English Poetry", "William Shakespeare Sonnets", "Modernist Prose Anthology", "The Odyssey: A Retelling", "World Drama Anthology", "Victorian Era Novels", "The Symbolist Movement", "Epic of Gilgamesh Studies"],
+    "Arts": ["Masters of the Renaissance", "Abstract Art Movements", "Techniques of Sculpture", "Advanced Music Theory", "Aesthetics of Cinema", "Architectural Wonders", "The Science of Color", "History of Gothic Art"],
+    "Biographies": ["Mandela: Long Walk", "Steve Jobs: The Visionary", "Malala: The Voice", "Einstein: Relative Genius", "Marie Curie: Radiation", "Malcolm X: The Legacy", "Martin Luther King Jr.", "Tesla: The Inventor"],
+    "Economics": ["The Wealth of Nations", "Capital in the 21st Century", "Macroeconomic Policy", "Stock Market Mastery", "Behavioral Economics", "Global Trade Dynamics", "The Digital Currency Age", "Asset Management Intro"],
+    "Health": ["Public Health Systems", "Nutrition & Metabolism", "Preventive Medicine", "Medical Ethics Handbook", "Epidemiology Studies", "Geriatric Care Guide", "Pediatrics Essentials", "Virology Research Today"],
+    "Physiology": ["Human Anatomy & Physiology", "Cellular Biology Systems", "Respiratory Mechanics", "Endocrine Functions", "Neurophysiology Mastery", "Digestive System Science", "Musculoskeletal Dynamics", "Cardiovascular Health"],
+    "Psychology": ["Interpretation of Dreams", "Cognitive Behavioral Therapy", "Social Dynamics Study", "Advanced Child Psychology", "Clinical Psychology Intro", "Personality Trait Analysis", "Emotional Intelligence", "Healing From Trauma"],
+    "Engineering": ["Principles of Civil Engineering", "Mechanical Dynamics", "Electrical Circuitry", "Aerospace Design", "Structural Integrity", "Robotics Engineering", "Renewable Energy Systems", "Material Science Intro"],
     "All": []
   };
 
-  const authors = ["Dr. Ahmed Lere", "Prof. Jane Smith", "Imam Malik", "Justice Roberts", "Scholar John", "Apostle Paul", "Historian Musa", "Barrister Bello"];
+  const authors = ["Dr. Ahmed Lere", "Prof. Jane Smith", "Imam Malik", "Justice Roberts", "Scholar John", "Apostle Paul", "Historian Musa", "Barrister Bello", "Engr. David", "Dr. Sarah"];
 
   for (let i = 1; i <= 1000; i++) {
     const cat = categories[i % categories.length];
@@ -86,10 +88,10 @@ const generate1000Books = (): Book[] => {
     
     books.push({
       id: i.toString(),
-      title: `${template} - Volume ${Math.floor(i / categories.length) + 1}`,
+      title: `${template} - Part ${Math.floor(i / categories.length) + 1}`,
       author: authors[i % authors.length],
       category: cat,
-      parts: (i % 100) + 1,
+      parts: (i % 12) + 1,
       cover: `https://picsum.photos/seed/book${i}/200/300`
     });
   }
@@ -121,7 +123,8 @@ export default function LibraryPage() {
     { name: "Arts", icon: Palette, color: "text-cyan-500 bg-cyan-50" },
     { name: "Biographies", icon: UserCircle, color: "text-violet-500 bg-violet-50" },
     { name: "Economics", icon: TrendingUp, color: "text-green-500 bg-green-50" },
-    { name: "Health", icon: Stethoscope, color: "text-red-500 bg-red-50" },
+    { name: "Physiology", icon: Dna, color: "text-red-500 bg-red-50" },
+    { name: "Health", icon: Stethoscope, color: "text-rose-600 bg-rose-50" },
     { name: "Psychology", icon: Brain, color: "text-pink-500 bg-pink-50" },
     { name: "Engineering", icon: Wrench, color: "text-gray-600 bg-gray-100" },
   ];
@@ -165,14 +168,14 @@ export default function LibraryPage() {
             <CardContent className="p-8 space-y-4">
               <div className="space-y-2">
                 <Badge className="bg-white/20 text-white border-none mb-2">1,000 Verified Titles</Badge>
-                <h2 className="text-3xl font-bold">World Knowledge</h2>
-                <p className="text-primary-foreground/80">Every major religious and educational text.</p>
+                <h2 className="text-3xl font-bold">Search Knowledge</h2>
+                <p className="text-primary-foreground/80">Every major religious and educational text is here.</p>
               </div>
               <div className="pt-2">
                  <div className="relative">
                     <Search className="absolute left-3 top-3 h-5 w-5 text-primary" />
                     <Input 
-                      placeholder="Search 1,000 titles..." 
+                      placeholder="Search books or authors..." 
                       className="pl-10 h-12 bg-white text-foreground rounded-xl border-none shadow-sm focus-visible:ring-white"
                       value={searchQuery}
                       onChange={(e) => {
@@ -239,7 +242,7 @@ export default function LibraryPage() {
           <div className="relative">
             <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
             <Input 
-              placeholder="Search by title, author, or category..." 
+              placeholder="Search 1,000 books..." 
               className="pl-10 h-12 bg-white rounded-xl border-none shadow-sm focus-visible:ring-primary"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
