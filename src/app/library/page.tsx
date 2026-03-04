@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { 
   ArrowLeft, 
   Search, 
@@ -13,15 +13,17 @@ import {
   Cpu, 
   Heart, 
   Cross,
-  ChevronRight,
   Download,
-  BookMarked
+  BookMarked,
+  History as HistoryIcon,
+  Gavel,
+  CheckCircle2
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
-type Category = "All" | "Science" | "ICT" | "Qur'an" | "Hadiths" | "Islam" | "Christian";
+type Category = "All" | "Science" | "ICT" | "Qur'an" | "Hadiths" | "Islam" | "Christian" | "History" | "Laws";
 
 interface Book {
   id: string;
@@ -32,16 +34,43 @@ interface Book {
   cover: string;
 }
 
-const SAMPLE_BOOKS: Book[] = [
-  { id: "1", title: "Introduction to Physics", author: "Dr. Albert", category: "Science", parts: 45, cover: "https://picsum.photos/seed/sci1/200/300" },
-  { id: "2", title: "Modern Web Development", author: "Lere Dev", category: "ICT", parts: 100, cover: "https://picsum.photos/seed/ict1/200/300" },
-  { id: "3", title: "The Holy Qur'an", author: "Prophetic Revelation", category: "Qur'an", parts: 114, cover: "https://picsum.photos/seed/quran1/200/300" },
-  { id: "4", title: "Sahih al-Bukhari", author: "Imam Bukhari", category: "Hadiths", parts: 97, cover: "https://picsum.photos/seed/hadith1/200/300" },
-  { id: "5", title: "Islamic Jurisprudence", author: "Sheikh Amin", category: "Islam", parts: 60, cover: "https://picsum.photos/seed/islam1/200/300" },
-  { id: "6", title: "The Holy Bible", author: "Apostolic Writers", category: "Christian", parts: 66, cover: "https://picsum.photos/seed/bible1/200/300" },
-  { id: "7", title: "Quantum Computing", author: "Jane Quantum", category: "Science", parts: 30, cover: "https://picsum.photos/seed/sci2/200/300" },
-  { id: "8", title: "AI and Machine Learning", author: "Deep Mind", category: "ICT", parts: 85, cover: "https://picsum.photos/seed/ict2/200/300" },
-];
+// Function to generate exactly 1000 books across requested categories
+const generate1000Books = (): Book[] => {
+  const books: Book[] = [];
+  const categories: Category[] = ["Science", "ICT", "Qur'an", "Hadiths", "Islam", "Christian", "History", "Laws"];
+  
+  const categoryTemplates: Record<Category, string[]> = {
+    "Science": ["Physics Fundamentals", "Quantum Mechanics", "Organic Chemistry", "Evolutionary Biology", "Astrophysics", "Genetics Today", "Neuroscience Intro"],
+    "ICT": ["Cloud Architecture", "Python for Data", "Cybersecurity Shield", "React Native Pro", "AI & Ethics", "Blockchain Ledger", "UI/UX Mastery"],
+    "Qur'an": ["Surah Al-Baqarah Study", "The Noble Qur'an", "Tajweed Guide", "Tafsir Al-Jalalayn", "Qur'anic Arabic", "Chronology of Revelation"],
+    "Hadiths": ["Sahih Al-Bukhari Vol", "Sahih Muslim Gems", "Riyadh as-Salihin", "40 Hadith Nawawi", "Sunan Abi Dawud", "Hadith Science"],
+    "Islam": ["Fiqh of Worship", "Islamic History", "Lives of Prophets", "Sufism Insights", "Hajj & Umrah Guide", "Zakat Principles"],
+    "Christian": ["The Holy Bible (KJV)", "New Testament Study", "Psalms & Proverbs", "Church History", "Systematic Theology", "Gospel Analysis"],
+    "History": ["African Kingdoms", "Ancient Rome", "The Industrial Era", "World War II Docs", "Medieval Europe", "Cold War Secrets"],
+    "Laws": ["Constitutional Law", "Criminal Justice", "International Treaties", "Human Rights Law", "Corporate Legalities", "Environmental Acts"],
+    "All": []
+  };
+
+  const authors = ["Dr. Ahmed Lere", "Prof. Jane Smith", "Imam Malik", "Justice Roberts", "Scholar John", "Apostle Paul", "Historian Musa"];
+
+  for (let i = 1; i <= 1000; i++) {
+    const cat = categories[i % categories.length];
+    const templates = categoryTemplates[cat];
+    const template = templates[i % templates.length];
+    
+    books.push({
+      id: i.toString(),
+      title: `${template} - Part ${Math.ceil(i / 8)}`,
+      author: authors[i % authors.length],
+      category: cat,
+      parts: Math.floor(Math.random() * 90) + 10,
+      cover: `https://picsum.photos/seed/book${i}/200/300`
+    });
+  }
+  return books;
+};
+
+const MASTER_LIBRARY = generate1000Books();
 
 export default function LibraryPage() {
   const router = useRouter();
@@ -57,14 +86,18 @@ export default function LibraryPage() {
     { name: "Hadiths", icon: Heart, color: "text-emerald-500 bg-emerald-50" },
     { name: "Islam", icon: Library, color: "text-teal-500 bg-teal-50" },
     { name: "Christian", icon: Cross, color: "text-purple-500 bg-purple-50" },
+    { name: "History", icon: HistoryIcon, color: "text-orange-500 bg-orange-50" },
+    { name: "Laws", icon: Gavel, color: "text-slate-600 bg-slate-100" },
   ];
 
-  const filteredBooks = SAMPLE_BOOKS.filter(book => {
-    const matchesCategory = selectedCategory === "All" || book.category === selectedCategory;
-    const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          book.author.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const filteredBooks = useMemo(() => {
+    return MASTER_LIBRARY.filter(book => {
+      const matchesCategory = selectedCategory === "All" || book.category === selectedCategory;
+      const matchesSearch = book.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            book.author.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [selectedCategory, searchQuery]);
 
   const handleGetBook = (title: string) => {
     toast({
@@ -90,8 +123,9 @@ export default function LibraryPage() {
             </div>
             <CardContent className="p-8 space-y-4">
               <div className="space-y-2">
+                <Badge className="bg-white/20 text-white border-none mb-2">1,000+ Titles</Badge>
                 <h2 className="text-3xl font-bold">The Knowledge Hub</h2>
-                <p className="text-primary-foreground/80">Browse over 1000 world books, religious texts, and ICT resources.</p>
+                <p className="text-primary-foreground/80">Browse world history, laws, science, and holy scriptures.</p>
               </div>
               <div className="grid grid-cols-2 gap-3 pt-4">
                 <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-none backdrop-blur-md rounded-xl h-14" onClick={() => setView("books")}>
@@ -104,7 +138,7 @@ export default function LibraryPage() {
             </CardContent>
           </Card>
 
-          <h3 className="font-bold text-lg">Browse by Category</h3>
+          <h3 className="font-bold text-lg">Browse Categories</h3>
           <div className="grid grid-cols-2 gap-4">
             {categories.map((cat) => (
               <Button 
@@ -138,7 +172,9 @@ export default function LibraryPage() {
             </Button>
             <div>
               <h1 className="text-2xl font-bold">World Library</h1>
-              <p className="text-xs text-muted-foreground">Listing 1,000+ available titles</p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3 text-primary" /> Listing 1,000 available titles
+              </p>
             </div>
           </div>
         </div>
@@ -147,8 +183,8 @@ export default function LibraryPage() {
           <div className="relative">
             <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
             <Input 
-              placeholder="Search by title, author, or keywords..." 
-              className="pl-10 h-12 bg-white rounded-xl border-none shadow-sm"
+              placeholder="Search 1,000+ books by title or author..." 
+              className="pl-10 h-12 bg-white rounded-xl border-none shadow-sm focus-visible:ring-primary"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -177,8 +213,8 @@ export default function LibraryPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {filteredBooks.map((book) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+          {filteredBooks.slice(0, 50).map((book) => (
             <Card key={book.id} className="border-none shadow-sm hover:shadow-md transition-all overflow-hidden bg-white">
               <div className="flex h-44">
                 <div className="w-32 shrink-0 bg-slate-100 p-2">
@@ -200,12 +236,18 @@ export default function LibraryPage() {
               </div>
             </Card>
           ))}
+          
+          {filteredBooks.length > 50 && (
+            <div className="col-span-full text-center py-4">
+              <p className="text-xs text-muted-foreground italic">Showing first 50 results of {filteredBooks.length} titles. Use search to refine.</p>
+            </div>
+          )}
         </div>
 
         {filteredBooks.length === 0 && (
           <div className="text-center py-20 space-y-4">
             <Library className="h-16 w-16 text-muted/30 mx-auto" />
-            <p className="text-muted-foreground">No books found in this category.</p>
+            <p className="text-muted-foreground">No books found matching your criteria.</p>
           </div>
         )}
       </div>
