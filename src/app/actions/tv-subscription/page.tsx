@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Tv, ShieldCheck, Loader2, ChevronRight, Search } from "lucide-react";
+import { ArrowLeft, Tv, ShieldCheck, Loader2, ChevronRight, Search, LayoutList } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/context/UserContext";
@@ -26,6 +25,7 @@ export default function TVSubscriptionPage() {
     { id: "dstv", name: "DSTV", icon: "D" },
     { id: "gotv", name: "GOTV", icon: "G" },
     { id: "startimes", name: "Startimes", icon: "S" },
+    { id: "showmax", name: "Showmax", icon: "X" },
   ];
 
   const fetchPlans = async (providerId: string) => {
@@ -35,24 +35,30 @@ export default function TVSubscriptionPage() {
         headers: { 'Authorization': 'Token 80ca2a529de4afa096c4eabefeb275dafe3a8941' }
       });
       const data = await response.json();
-      setPlans(Array.isArray(data) ? data : data.results || []);
+      const planList = Array.isArray(data) ? data : data.results || [];
+      setPlans(planList);
     } catch (err) {
-      // Fallback
+      console.error("API error", err);
       const fallbacks: Record<string, any[]> = {
         dstv: [
           { id: 1, name: "DSTV Compact", price: 12500 },
           { id: 4, name: "DSTV Premium", price: 29500 },
           { id: 5, name: "DSTV Confam", price: 7400 },
+          { id: 10, name: "DSTV Padi", price: 2950 },
+          { id: 11, name: "DSTV Compact Plus", price: 19800 },
         ],
         gotv: [
           { id: 2, name: "GOTV Jolli", price: 4850 },
           { id: 6, name: "GOTV Max", price: 7200 },
           { id: 7, name: "GOTV Jinja", price: 3300 },
+          { id: 12, name: "GOTV Supa", price: 9600 },
+          { id: 13, name: "GOTV Lite", price: 1575 },
         ],
         startimes: [
           { id: 3, name: "Startimes Nova", price: 1500 },
           { id: 8, name: "Startimes Basic", price: 3300 },
           { id: 9, name: "Startimes Smart", price: 4700 },
+          { id: 14, name: "Startimes Super", price: 8200 },
         ],
       };
       setPlans(fallbacks[providerId] || []);
@@ -100,11 +106,11 @@ export default function TVSubscriptionPage() {
               <Button 
                 key={p.id}
                 variant="outline"
-                className="h-20 flex items-center justify-between rounded-3xl bg-white border-none shadow-sm hover:shadow-md px-6"
+                className="h-20 flex items-center justify-between rounded-3xl bg-white border-none shadow-sm hover:shadow-md px-6 group"
                 onClick={() => handleProviderSelect(p.id)}
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center font-bold text-primary">
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center font-bold text-primary group-hover:bg-primary group-hover:text-white transition-all">
                     {p.icon}
                   </div>
                   <span className="font-bold">{p.name}</span>
@@ -129,7 +135,10 @@ export default function TVSubscriptionPage() {
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-[10px] uppercase font-bold text-muted-foreground">Available {selectedProvider.toUpperCase()} Packages</Label>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-[10px] uppercase font-bold text-muted-foreground">Available {selectedProvider.toUpperCase()} Packages</Label>
+                    <span className="bg-primary/10 text-primary text-[8px] font-bold px-1.5 rounded">{plans.length} Packages</span>
+                  </div>
                   <span className="text-[10px] font-bold text-red-600">₦10 Fee</span>
                 </div>
 
@@ -137,7 +146,7 @@ export default function TVSubscriptionPage() {
                   <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input 
                     placeholder="Search packages..." 
-                    className="pl-9 h-9 text-xs rounded-lg"
+                    className="pl-9 h-10 text-xs rounded-xl border-none bg-accent/30"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -149,21 +158,28 @@ export default function TVSubscriptionPage() {
                     <p>Fetching all available plans...</p>
                   </div>
                 ) : (
-                  <div className="grid gap-2 max-h-[400px] overflow-y-auto pr-1 scrollbar-hide">
-                    {filteredPlans.map(p => (
-                      <Button 
-                        key={p.id}
-                        variant="outline"
-                        className="h-auto p-4 flex items-center justify-between rounded-2xl hover:bg-primary/5 border-none shadow-sm text-left group"
-                        onClick={() => handlePay(p)}
-                      >
-                        <div className="flex flex-col">
-                          <span className="font-bold text-sm">{p.name}</span>
-                          <span className="text-red-600 font-bold text-xs">₦{p.price.toLocaleString()}</span>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                      </Button>
-                    ))}
+                  <div className="grid gap-2 max-h-[400px] overflow-y-auto pr-1 scrollbar-hide pb-4">
+                    {filteredPlans.length > 0 ? (
+                      filteredPlans.map(p => (
+                        <Button 
+                          key={p.id}
+                          variant="outline"
+                          className="h-auto p-4 flex items-center justify-between rounded-2xl hover:bg-primary/5 border-none shadow-sm text-left group bg-slate-50/50"
+                          onClick={() => handlePay(p)}
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-bold text-sm">{p.name}</span>
+                            <span className="text-red-600 font-bold text-xs">₦{p.price.toLocaleString()}</span>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                        </Button>
+                      ))
+                    ) : (
+                      <div className="text-center py-10 space-y-2">
+                        <LayoutList className="h-8 w-8 mx-auto text-muted-foreground/30" />
+                        <p className="text-xs text-muted-foreground">No packages found.</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

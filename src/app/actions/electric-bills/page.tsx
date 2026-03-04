@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Zap, ShieldCheck, Loader2, ChevronRight } from "lucide-react";
+import { ArrowLeft, Zap, ShieldCheck, Loader2, ChevronRight, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/context/UserContext";
@@ -21,6 +20,7 @@ export default function ElectricBillsPage() {
   const [meter, setMeter] = useState("");
   const [providers, setProviders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchProviders();
@@ -33,9 +33,11 @@ export default function ElectricBillsPage() {
         headers: { 'Authorization': 'Token 80ca2a529de4afa096c4eabefeb275dafe3a8941' }
       });
       const data = await response.json();
-      setProviders(Array.isArray(data) ? data : data.results || []);
+      const providerList = Array.isArray(data) ? data : data.results || [];
+      setProviders(providerList);
     } catch (err) {
-      // Fallback
+      console.error("API Error", err);
+      // Real-world fallback
       setProviders([
         { id: "ikedc", name: "Ikeja Electric" },
         { id: "ekedc", name: "Eko Electric" },
@@ -43,6 +45,9 @@ export default function ElectricBillsPage() {
         { id: "phedra", name: "Port Harcourt Electric" },
         { id: "ibedc", name: "Ibadan Electric" },
         { id: "kaedco", name: "Kaduna Electric" },
+        { id: "jed", name: "Jos Electric" },
+        { id: "kedco", name: "Kano Electric" },
+        { id: "eedc", name: "Enugu Electric" },
       ]);
     } finally {
       setIsLoading(false);
@@ -61,6 +66,8 @@ export default function ElectricBillsPage() {
     router.push("/dashboard");
   };
 
+  const filteredProviders = providers.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-md mx-auto space-y-6">
@@ -72,27 +79,41 @@ export default function ElectricBillsPage() {
         </div>
 
         {step === "disco" ? (
-           <div className="space-y-3">
-             <Label className="text-[10px] uppercase font-bold text-muted-foreground pl-1">Select Distribution Company</Label>
+           <div className="space-y-4">
+             <div className="flex items-center justify-between px-1">
+               <Label className="text-[10px] uppercase font-bold text-muted-foreground">Select Distribution Company</Label>
+               <span className="text-[10px] font-bold text-primary">{providers.length} Available</span>
+             </div>
+
+             <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Search providers..." 
+                  className="pl-9 h-10 text-xs rounded-xl border-none bg-white shadow-sm"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+
              {isLoading ? (
                <div className="flex items-center justify-center py-20 flex-col gap-2">
                  <Loader2 className="animate-spin h-8 w-8 text-primary" />
                  <p className="text-xs">Fetching all providers...</p>
                </div>
              ) : (
-               <div className="grid gap-3">
-                 {providers.map(p => (
+               <div className="grid gap-3 max-h-[500px] overflow-y-auto pr-1 scrollbar-hide pb-4">
+                 {filteredProviders.map(p => (
                    <Button 
                     key={p.id}
                     variant="outline"
-                    className="h-16 flex items-center justify-between rounded-2xl bg-white border-none shadow-sm hover:shadow-md px-6"
+                    className="h-16 flex items-center justify-between rounded-2xl bg-white border-none shadow-sm hover:shadow-md px-6 group"
                     onClick={() => {
                       setSelectedDisco(p);
                       setStep("pay");
                     }}
                   >
                     <span className="font-bold">{p.name}</span>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-all" />
                   </Button>
                  ))}
                </div>
@@ -135,10 +156,17 @@ export default function ElectricBillsPage() {
                   <Label>Transaction PIN</Label>
                   <Input type="password" placeholder="****" maxLength={4} className="h-12 rounded-xl" required />
                 </div>
-                <div className="text-[10px] text-center font-bold text-muted-foreground uppercase">
-                  A flat fee of ₦10.00 will be added
+                <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                   <div className="flex justify-between items-center text-xs">
+                     <span className="text-muted-foreground">Service Fee:</span>
+                     <span className="font-bold">₦10.00</span>
+                   </div>
+                   <div className="flex justify-between items-center text-sm mt-1">
+                     <span className="text-muted-foreground">Total Deductible:</span>
+                     <span className="font-bold text-orange-600">₦{(parseFloat(amount || "0") + 10).toLocaleString()}</span>
+                   </div>
                 </div>
-                <Button type="submit" className="w-full h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-bold">
+                <Button type="submit" className="w-full h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-bold shadow-lg">
                   <ShieldCheck className="mr-2 h-5 w-5" /> Pay Bill Now
                 </Button>
               </form>

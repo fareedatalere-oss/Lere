@@ -1,10 +1,10 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, GraduationCap, ChevronRight, Loader2, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, GraduationCap, ChevronRight, Loader2, Search, BookOpenCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/context/UserContext";
@@ -28,14 +28,18 @@ export default function ExamsPinPage() {
         headers: { 'Authorization': 'Token 80ca2a529de4afa096c4eabefeb275dafe3a8941' }
       });
       const data = await response.json();
-      setPins(Array.isArray(data) ? data : data.results || []);
+      const pinList = Array.isArray(data) ? data : data.results || [];
+      setPins(pinList);
     } catch (err) {
-      // Fallback
+      console.error("API Error", err);
+      // Realistic fallback
       setPins([
         { id: "waec", name: "WAEC Result Checker", price: 3400 },
         { id: "neco", name: "NECO Token", price: 950 },
         { id: "nabteb", name: "NABTEB Pin", price: 1200 },
         { id: "jamb", name: "JAMB Result Pin", price: 2500 },
+        { id: "waec_gce", name: "WAEC GCE Registration", price: 18000 },
+        { id: "neco_gce", name: "NECO GCE Registration", price: 15500 },
       ]);
     } finally {
       setIsLoading(false);
@@ -68,8 +72,8 @@ export default function ExamsPinPage() {
         <div className="relative">
           <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
           <Input 
-            placeholder="Search exam pins..." 
-            className="pl-10 h-12 rounded-xl border-none shadow-sm"
+            placeholder="Search all exam pins..." 
+            className="pl-10 h-12 rounded-2xl border-none shadow-sm bg-white"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -82,23 +86,34 @@ export default function ExamsPinPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-[10px] font-bold uppercase text-muted-foreground pl-1">₦10 Service Fee Applied to all purchases</p>
-            {filteredPins.map((pin) => (
-              <Card key={pin.id} className="border-none shadow-sm hover:shadow-md transition-all bg-white rounded-3xl overflow-hidden cursor-pointer" onClick={() => handleBuy(pin)}>
-                <CardContent className="p-5 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600">
-                      <GraduationCap className="h-6 w-6" />
+            <div className="flex items-center justify-between px-1">
+              <p className="text-[10px] font-bold uppercase text-muted-foreground">Available Pins ({pins.length})</p>
+              <p className="text-[10px] font-bold text-primary">₦10 Service Fee Applied</p>
+            </div>
+            
+            {filteredPins.length > 0 ? (
+              filteredPins.map((pin) => (
+                <Card key={pin.id} className="border-none shadow-sm hover:shadow-md transition-all bg-white rounded-3xl overflow-hidden cursor-pointer group" onClick={() => handleBuy(pin)}>
+                  <CardContent className="p-5 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-all">
+                        <GraduationCap className="h-6 w-6" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm">{pin.name}</h4>
+                        <p className="text-xs text-green-600 font-bold">₦{pin.price.toLocaleString()}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-bold text-sm">{pin.name}</h4>
-                      <p className="text-xs text-green-600 font-bold">₦{pin.price.toLocaleString()}</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                </CardContent>
-              </Card>
-            ))}
+                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-all" />
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="text-center py-20 space-y-2 opacity-40">
+                <BookOpenCheck className="h-12 w-12 mx-auto" />
+                <p className="text-sm font-medium">No results found.</p>
+              </div>
+            )}
           </div>
         )}
       </div>
