@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -30,7 +29,10 @@ import {
   Wallet, 
   Loader2,
   BellRing,
-  PlusCircle
+  PlusCircle,
+  Hash,
+  BookOpen,
+  MessageCircle
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CallInterface } from "@/components/CallInterface";
@@ -277,7 +279,7 @@ export default function Dashboard() {
 
         <IceBreaker />
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all group" onClick={() => router.push("/actions/airtime-to-cash")}>
             <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
               <Smartphone className="h-5 w-5 text-secondary" />
@@ -292,11 +294,25 @@ export default function Dashboard() {
             <span className="text-xs font-semibold">Buy Data</span>
           </Button>
 
-          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all group" onClick={() => router.push("/actions/buy-airtime")}>
+          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all group" onClick={() => router.push("/actions/buy-number")}>
             <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Phone className="h-5 w-5 text-secondary" />
+              <Hash className="h-5 w-5 text-secondary" />
             </div>
-            <span className="text-xs font-semibold">Buy Airtime</span>
+            <span className="text-xs font-semibold">Buy Number</span>
+          </Button>
+
+          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all group" onClick={() => router.push("/actions/sms")}>
+            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+              <MessageCircle className="h-5 w-5 text-primary" />
+            </div>
+            <span className="text-xs font-semibold">SMS</span>
+          </Button>
+
+          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all group" onClick={() => router.push("/library")}>
+            <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+              <BookOpen className="h-5 w-5 text-secondary" />
+            </div>
+            <span className="text-xs font-semibold">Browse Library</span>
           </Button>
 
           <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all group" onClick={() => router.push("/actions/send-money")}>

@@ -74,14 +74,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const safePhone = sanitizePhoneNumberForEmail(userData.phoneNumber);
       if (!safePhone) throw new Error("Invalid phone number");
 
-      // Check for existing phone number
       const phoneQuery = query(collection(firestore, "users"), where("phoneNumber", "==", userData.phoneNumber), limit(1));
       const phoneSnapshot = await getDocs(phoneQuery);
       if (!phoneSnapshot.empty) {
         throw new Error("This phone number is already registered.");
       }
 
-      // Check for existing username
       const usernameQuery = query(collection(firestore, "users"), where("username", "==", userData.username), limit(1));
       const usernameSnapshot = await getDocs(usernameQuery);
       if (!usernameSnapshot.empty) {
@@ -97,6 +95,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const fullUser = { 
         ...userData, 
         id: uid,
+        balance: 0.00, // No more fake/mock bonus. Users must fund their own accounts.
         createdAt: new Date().toISOString(),
         myReferralCode: "LERE" + Math.floor(1000 + Math.random() * 9000)
       };
