@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -32,7 +33,9 @@ import {
   PlusCircle,
   Hash,
   BookOpen,
-  MessageCircle
+  MessageCircle,
+  PlayCircle,
+  Coins
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CallInterface } from "@/components/CallInterface";
@@ -75,12 +78,6 @@ export default function Dashboard() {
   }, [user, isUserLoading, router]);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      Notification.requestPermission();
-    }
-  }, []);
-
-  useEffect(() => {
     if (!firestore || !user?.phoneNumber || !firebaseUser) return;
 
     const callsRef = collection(firestore, "calls");
@@ -95,12 +92,6 @@ export default function Dashboard() {
         if (change.type === "added") {
           const callData = { id: change.doc.id, ...change.doc.data() };
           setIncomingCall(callData);
-
-          if (document.visibilityState !== 'visible' && Notification.permission === "granted") {
-            new Notification(`Incoming ${callData.callType} Call`, {
-              body: `${callData.callerId} is calling you on Lere Connect`,
-            });
-          }
         }
       });
     }, async (error) => {
@@ -126,51 +117,22 @@ export default function Dashboard() {
 
   const handleStartCall = async (type: "voice" | "video") => {
     if (!targetNumber) {
-      toast({
-        variant: "destructive",
-        title: "Number Required",
-        description: "Please enter a phone number to start a call.",
-      });
+      toast({ variant: "destructive", title: "Number Required", description: "Please enter a phone number." });
       return;
     }
-    
-    if (targetNumber === user.phoneNumber) {
-      toast({
-        variant: "destructive",
-        title: "Invalid Number",
-        description: "You cannot call yourself.",
-      });
-      return;
-    }
-
     setIsValidating(true);
     try {
       const usersRef = collection(firestore!, "users");
       const q = query(usersRef, where("phoneNumber", "==", targetNumber), limit(1));
       const querySnapshot = await getDocs(q);
-
       if (querySnapshot.empty) {
-        toast({
-          variant: "destructive",
-          title: "Not Registered",
-          description: "This number isn't yet registered with Lere Connect.",
-        });
+        toast({ variant: "destructive", title: "Not Registered", description: "This number isn't yet registered." });
         setIsValidating(false);
         return;
       }
-
-      setIsCalling({ 
-        isOpen: true, 
-        type, 
-        receiverId: targetNumber 
-      });
+      setIsCalling({ isOpen: true, type, receiverId: targetNumber });
     } catch (err) {
-      console.error("Validation error:", err);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to verify number. Please try again.",
-      });
+      toast({ variant: "destructive", title: "Error", description: "Failed to verify number." });
     } finally {
       setIsValidating(false);
     }
@@ -184,14 +146,6 @@ export default function Dashboard() {
         incomingCallId: incomingCall.id,
         receiverId: incomingCall.callerId
       });
-      setIncomingCall(null);
-    }
-  };
-
-  const handleRejectCall = () => {
-    if (incomingCall && firestore) {
-      const callDoc = doc(firestore, "calls", incomingCall.id);
-      updateDoc(callDoc, { status: 'rejected' });
       setIncomingCall(null);
     }
   };
@@ -216,21 +170,10 @@ export default function Dashboard() {
               disabled={isValidating}
             />
             <div className="flex gap-1 pr-1">
-              <Button 
-                size="sm" 
-                variant="ghost" 
-                className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 text-primary" 
-                onClick={() => handleStartCall("voice")}
-                disabled={isValidating}
-              >
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full text-primary" onClick={() => handleStartCall("voice")}>
                 {isValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone className="h-4 w-4" />}
               </Button>
-              <Button 
-                size="sm" 
-                className="h-8 px-3 rounded-full bg-primary hover:bg-primary/90 text-[10px] font-bold" 
-                onClick={() => handleStartCall("video")}
-                disabled={isValidating}
-              >
+              <Button size="sm" className="h-8 px-3 rounded-full bg-primary" onClick={() => handleStartCall("video")}>
                 <Video className="h-4 w-4 mr-1" /> CALL
               </Button>
             </div>
@@ -240,38 +183,29 @@ export default function Dashboard() {
 
       <main className="max-w-4xl mx-auto p-4 space-y-6">
         <Card className="bg-gradient-to-br from-primary to-primary/80 border-none shadow-xl text-white relative overflow-hidden">
-          <div className="absolute right-0 bottom-0 opacity-10 scale-150 rotate-12 pointer-events-none">
-             <CreditCard size={200} />
-          </div>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div className="space-y-1">
-              <CardTitle className="text-sm font-medium text-white/70">Total Balance</CardTitle>
+              <CardTitle className="text-sm font-medium text-white/70">Main Balance</CardTitle>
               <div className="flex items-center gap-3">
-                <div className="text-3xl font-bold tracking-tight">
-                  ₦{user.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </div>
-                <Button 
-                  size="sm" 
-                  className="bg-white/20 hover:bg-white/30 text-white rounded-full h-8 px-3 flex items-center gap-1 backdrop-blur-md"
-                  onClick={() => toast({ title: "Funding Interface", description: "Payment gateway loading..." })}
-                >
+                <div className="text-3xl font-bold">₦{user.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                <Button size="sm" className="bg-white/20 hover:bg-white/30 text-white rounded-full h-8 px-3" onClick={() => router.push("/actions/fund")}>
                   <PlusCircle className="h-4 w-4" /> Fund
                 </Button>
               </div>
             </div>
-            <div className="h-10 w-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
+            <div className="h-10 w-10 bg-white/20 rounded-full flex items-center justify-center">
               <Wallet className="h-5 w-5" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-4 mt-2">
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/5">
-                <p className="text-[10px] uppercase tracking-wider text-white/50 mb-1">My Number</p>
-                <p className="text-sm font-mono font-medium">{user.phoneNumber}</p>
+            <div className="flex items-center justify-between bg-white/10 rounded-lg p-3">
+              <div>
+                <p className="text-[10px] text-white/50 uppercase">Reward Points</p>
+                <p className="text-sm font-bold flex items-center gap-1"><Coins className="h-3 w-3 text-yellow-400" /> {user.rewardBalance?.toFixed(2) || "0.00"}</p>
               </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/5">
-                <p className="text-[10px] uppercase tracking-wider text-white/50 mb-1">Credit Input</p>
-                <p className="text-sm font-mono font-medium">{user.accountNumber}</p>
+              <div className="text-right">
+                <p className="text-[10px] text-white/50 uppercase">Credit Input</p>
+                <p className="text-sm font-mono">{user.accountNumber}</p>
               </div>
             </div>
           </CardContent>
@@ -279,95 +213,62 @@ export default function Dashboard() {
 
         <IceBreaker />
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all group" onClick={() => router.push("/actions/airtime-to-cash")}>
-            <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Smartphone className="h-5 w-5 text-secondary" />
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/actions/watch")}>
+            <div className="w-10 h-10 bg-yellow-50 rounded-full flex items-center justify-center">
+              <PlayCircle className="h-5 w-5 text-yellow-600" />
             </div>
-            <span className="text-xs font-semibold">Airtime to Cash</span>
+            <span className="text-xs font-semibold">Watch & Earn</span>
           </Button>
 
-          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all group" onClick={() => router.push("/actions/buy-data")}>
-            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/actions/buy-data")}>
+            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
               <Wifi className="h-5 w-5 text-primary" />
             </div>
             <span className="text-xs font-semibold">Buy Data</span>
           </Button>
 
-          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all group" onClick={() => router.push("/actions/buy-number")}>
-            <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/actions/buy-number")}>
+            <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center">
               <Hash className="h-5 w-5 text-secondary" />
             </div>
             <span className="text-xs font-semibold">Buy Number</span>
           </Button>
 
-          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all group" onClick={() => router.push("/actions/sms")}>
-            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/actions/sms")}>
+            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
               <MessageCircle className="h-5 w-5 text-primary" />
             </div>
             <span className="text-xs font-semibold">SMS</span>
           </Button>
 
-          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all group" onClick={() => router.push("/library")}>
-            <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/library")}>
+            <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center">
               <BookOpen className="h-5 w-5 text-secondary" />
             </div>
-            <span className="text-xs font-semibold">Browse Library</span>
-          </Button>
-
-          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all group" onClick={() => router.push("/actions/send-money")}>
-            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Send className="h-5 w-5 text-primary" />
-            </div>
-            <span className="text-xs font-semibold">Send Money</span>
-          </Button>
-
-          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all group" onClick={() => router.push("/profile")}>
-            <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-              <User className="h-5 w-5 text-secondary" />
-            </div>
-            <span className="text-xs font-semibold">Profile</span>
-          </Button>
-
-          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all group" onClick={() => router.push("/contact")}>
-            <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
-              <MessageSquare className="h-5 w-5 text-primary" />
-            </div>
-            <span className="text-xs font-semibold">Contact</span>
+            <span className="text-xs font-semibold">Library</span>
           </Button>
         </div>
 
         <div className="pt-6">
-          <Button variant="ghost" className="w-full text-red-500 hover:bg-red-50 hover:text-red-600 rounded-xl" onClick={logout}>
+          <Button variant="ghost" className="w-full text-red-500 rounded-xl" onClick={logout}>
             <LogOut className="h-4 w-4 mr-2" /> Logout
           </Button>
         </div>
       </main>
 
       <AlertDialog open={!!incomingCall}>
-        <AlertDialogContent className="bg-white border-none shadow-2xl rounded-3xl p-8 flex flex-col items-center">
+        <AlertDialogContent className="bg-white rounded-3xl p-8 flex flex-col items-center">
           <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6 animate-bounce">
             <BellRing className="h-10 w-10 text-primary" />
           </div>
           <AlertDialogHeader className="text-center">
             <AlertDialogTitle className="text-2xl font-bold">Incoming {incomingCall?.callType} Call</AlertDialogTitle>
-            <AlertDialogDescription className="text-lg">
-              {incomingCall?.callerId} is calling you...
-            </AlertDialogDescription>
+            <AlertDialogDescription>{incomingCall?.callerId} is calling...</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex gap-4 w-full mt-8">
-            <AlertDialogCancel 
-              onClick={handleRejectCall}
-              className="flex-1 h-14 rounded-2xl border-2 border-red-100 text-red-500 hover:bg-red-50 hover:text-red-600 font-bold"
-            >
-              Deny
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleAcceptCall}
-              className="flex-1 h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold"
-            >
-              Pick Up
-            </AlertDialogAction>
+            <AlertDialogCancel onClick={() => setIncomingCall(null)} className="flex-1 h-14 rounded-2xl text-red-500 font-bold">Deny</AlertDialogCancel>
+            <AlertDialogAction onClick={handleAcceptCall} className="flex-1 h-14 rounded-2xl bg-primary text-white font-bold">Pick Up</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

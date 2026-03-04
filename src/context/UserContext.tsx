@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
@@ -25,6 +26,7 @@ interface User {
   phoneNumber: string;
   accountNumber: string;
   balance: number;
+  rewardBalance: number;
   pin: string;
   createdAt?: string;
   myReferralCode?: string;
@@ -36,6 +38,7 @@ interface UserContextType {
   login: (phoneNumber: string, pin: string) => Promise<void>;
   signup: (userData: User) => Promise<void>;
   logout: () => Promise<void>;
+  addReward: (amount: number) => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -80,12 +83,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         throw new Error("This phone number is already registered.");
       }
 
-      const usernameQuery = query(collection(firestore, "users"), where("username", "==", userData.username), limit(1));
-      const usernameSnapshot = await getDocs(usernameQuery);
-      if (!usernameSnapshot.empty) {
-        throw new Error("This username is already taken.");
-      }
-
       const email = `${safePhone}@lereconnect.com`;
       const password = `pin_${userData.pin}_safe`; 
       
@@ -95,7 +92,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       const fullUser = { 
         ...userData, 
         id: uid,
-        balance: 0.00, // No starting bonus - balance must be funded by user
+        balance: 0.00,
+        rewardBalance: 0.00,
         createdAt: new Date().toISOString(),
         myReferralCode: "LERE" + Math.floor(1000 + Math.random() * 9000)
       };
@@ -131,8 +129,16 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const addReward = async (amount: number) => {
+    if (!user?.id || !firestore) return;
+    const newReward = (user.rewardBalance || 0) + amount;
+    const userRef = doc(firestore, "users", user.id);
+    await setDoc(userRef, { rewardBalance: newReward }, { merge: true });
+    setUser({ ...user, rewardBalance: newReward });
+  };
+
   return (
-    <UserContext.Provider value={{ user, isLoading, login, signup, logout }}>
+    <UserContext.Provider value={{ user, isLoading, login, signup, logout, addReward }}>
       {children}
     </UserContext.Provider>
   );
