@@ -1,189 +1,44 @@
+
 {
   "entities": {
     "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a registered user within the Lere Connect application, holding core profile and financial information.",
+      "description": "Represents a registered user within the Lere Connect application.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the User entity."
-        },
-        "username": {
-          "type": "string",
-          "description": "The user's chosen display name."
-        },
-        "phoneNumber": {
-          "type": "string",
-          "description": "The user's registered phone number, used for communication and identification."
-        },
-        "accountNumber": {
-          "type": "string",
-          "description": "The unique account number associated with the user's financial activities within the app."
-        },
-        "balance": {
-          "type": "number",
-          "description": "The current monetary balance available in the user's account."
-        },
-        "transactionPinHash": {
-          "type": "string",
-          "description": "A securely hashed version of the user's transaction PIN, used for authorizing financial operations. (Note: Raw PIN is never stored)."
-        },
-        "referralCodeUsed": {
-          "type": "string",
-          "description": "The optional referral code provided by the user during registration.",
-          "format": "string"
-        },
-        "myReferralCode": {
-          "type": "string",
-          "description": "The unique referral code assigned to this user, which they can share with others."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the user account was created.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp indicating the last time the user's account information was updated.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "accountNumber": { "type": "string" },
+        "balance": { "type": "number" },
+        "rewardBalance": { "type": "number" },
+        "pin": { "type": "string" },
+        "myReferralCode": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "username",
-        "phoneNumber",
-        "accountNumber",
-        "balance",
-        "transactionPinHash",
-        "myReferralCode",
-        "createdAt"
-      ]
+      "required": ["id", "username", "phoneNumber", "accountNumber", "balance", "pin", "createdAt"]
     },
-    "Call": {
+    "PublishedBook": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Call",
+      "title": "PublishedBook",
       "type": "object",
-      "description": "Records details of a single voice or video call between two users in the Lere Connect application.",
+      "description": "A book published by a user to the global library.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Call entity."
-        },
-        "callerId": {
-          "type": "string",
-          "description": "Reference to the User who initiated the call. (Relationship: User 1:N Call)"
-        },
-        "receiverId": {
-          "type": "string",
-          "description": "Reference to the User who was the recipient of the call. (Relationship: User 1:N Call)"
-        },
-        "callType": {
-          "type": "string",
-          "description": "The type of call made, either 'voice' or 'video'.",
-          "format": "string"
-        },
-        "startTime": {
-          "type": "string",
-          "description": "Timestamp indicating when the call was initiated or started.",
-          "format": "date-time"
-        },
-        "endTime": {
-          "type": "string",
-          "description": "Timestamp indicating when the call ended, if applicable.",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "description": "The current or final status of the call (e.g., 'initiated', 'ringing', 'accepted', 'rejected', 'missed', 'ended', 'failed').",
-          "format": "string"
-        },
-        "durationSeconds": {
-          "type": "number",
-          "description": "The total duration of the call in seconds, if the call was accepted and ended."
-        },
-        "iceBreakerQuestion": {
-          "type": "string",
-          "description": "An optional AI-generated question or topic suggestion used to help initiate conversation during the call."
-        }
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "author": { "type": "string" },
+        "category": { "type": "string" },
+        "publisherId": { "type": "string" },
+        "publisherName": { "type": "string" },
+        "summary": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "callerId",
-        "receiverId",
-        "callType",
-        "startTime",
-        "status"
-      ]
-    },
-    "Transaction": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Transaction",
-      "type": "object",
-      "description": "Records all financial operations performed by users within the Lere Connect application.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Transaction entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who performed this transaction. (Relationship: User 1:N Transaction)"
-        },
-        "transactionType": {
-          "type": "string",
-          "description": "The type of financial transaction (e.g., 'airtimeToCash', 'buyData', 'buyAirtime', 'sendMoney', 'deposit', 'withdrawal').",
-          "format": "string"
-        },
-        "amount": {
-          "type": "number",
-          "description": "The monetary value of the transaction."
-        },
-        "currency": {
-          "type": "string",
-          "description": "The currency in which the transaction was performed (e.g., 'NGN', 'USD')."
-        },
-        "description": {
-          "type": "string",
-          "description": "A short description of the transaction (e.g., 'Buy 500MB Data for +234...', 'Sent 1000 NGN to John Doe')."
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the transaction (e.g., 'pending', 'completed', 'failed', 'reversed').",
-          "format": "string"
-        },
-        "transactionDate": {
-          "type": "string",
-          "description": "Timestamp indicating when the transaction occurred.",
-          "format": "date-time"
-        },
-        "recipientPhoneNumber": {
-          "type": "string",
-          "description": "The phone number of the recipient for transactions like 'sendMoney', 'buyAirtime', or 'buyData'."
-        },
-        "recipientUserId": {
-          "type": "string",
-          "description": "Reference to the User who is the recipient for in-app transactions like 'sendMoney'. (Relationship: User 1:N Transaction)"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "transactionType",
-        "amount",
-        "currency",
-        "description",
-        "status",
-        "transactionDate"
-      ]
+      "required": ["title", "author", "category", "publisherId", "createdAt"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password", "anonymous"]
   },
   "firestore": {
     "structure": [
@@ -191,49 +46,18 @@
         "path": "/users/{userId}",
         "definition": {
           "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Root collection for user profiles. Each document ID (`{userId}`) corresponds to the Firebase Authentication UID. This structure ensures private user data accessible only by the owning user. No denormalized fields for authorization are needed beyond the path itself."
+          "schema": { "$ref": "#/backend/entities/User" },
+          "description": "User profiles."
         }
       },
       {
-        "path": "/users/{userId}/transactions/{transactionId}",
+        "path": "/published_books/{bookId}",
         "definition": {
-          "entityName": "Transaction",
-          "schema": {
-            "$ref": "#/backend/entities/Transaction"
-          },
-          "description": "Subcollection for financial transactions associated with a specific user. The `{userId}` in the path dictates ownership. The Transaction entity also includes a denormalized 'userId' field for authorization independence and simplified security rules.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique ID of the User who owns this transaction."
-            },
-            {
-              "name": "transactionId",
-              "description": "The unique ID of the Transaction."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/calls/{callId}",
-        "definition": {
-          "entityName": "Call",
-          "schema": {
-            "$ref": "#/backend/entities/Call"
-          },
-          "description": "Top-level collection for all voice and video call records. Each Call document includes denormalized 'callerId' and 'receiverId' fields for authorization independence, allowing direct rule evaluation based on participants and supporting QAPs.",
-          "params": [
-            {
-              "name": "callId",
-              "description": "The unique ID of the Call record."
-            }
-          ]
+          "entityName": "PublishedBook",
+          "schema": { "$ref": "#/backend/entities/PublishedBook" },
+          "description": "Global collection of user-published educational books."
         }
       }
-    ],
-    "reasoning": "The recommended Firestore structure for Lere Connect prioritizes Authorization Independence and Query as Authorization Primitives (QAPs) to ensure robust security and efficient rule evaluation. \n\n**Authorization Independence:**\n1.  **User Profiles (`/users/{userId}`):** User profiles are stored in a top-level collection where the document ID (`{userId}`) directly corresponds to the authenticated user's UID (`request.auth.uid`). This inherently provides authorization independence as access to a user's profile only depends on the authenticated user's identity matching the document ID. No `get()` calls to other documents are needed to verify ownership.\n2.  **User Transactions (`/users/{userId}/transactions/{transactionId}`):** Transactions are organized as a subcollection under the owning user's profile. The `{userId}` in the path ensures that transactions are explicitly scoped to the owner. Additionally, the `Transaction` entity itself includes a `userId` field, which is a key denormalization. This field duplicates the parent path's `userId` but is crucial for enabling Authorization Independence. Security rules can directly check `request.auth.uid == resource.data.userId` without performing a `get()` operation on the parent user document. This also facilitates atomic creation of user and transaction data.\n3.  **Calls (`/calls/{callId}`):** Call records are stored in a top-level collection. The `Call` entity includes `callerId` and `receiverId` fields. These fields are critical denormalizations for authorization. Instead of relying on a hierarchical structure or needing to `get()` a related 'chat' or 'room' document, all necessary authorization context (who is participating in the call) is present within each `Call` document itself. Rules can simply check `request.auth.uid == resource.data.callerId || request.auth.uid == resource.data.receiverId`, eliminating any `get()` calls in security rules and ensuring atomic call creation/updates.\n\n**QAPs (Queries as Authorization Primitives):**\n1.  **User Profiles:** Users can only query their own profile (`/users/request.auth.uid`), which is inherently QAP-compliant as the query directly specifies the authorized document.\n2.  **User Transactions:** The structure `/users/{userId}/transactions/{transactionId}` allows for easy listing of a user's transactions: `db.collection('users').doc(uid).collection('transactions').get()`. The security rules will implicitly validate `userId == request.auth.uid` based on the path, ensuring that users only retrieve their own transactions. The denormalized `userId` field within the document also allows for secure collection group queries (if enabled and rules permit) by filtering on `userId == request.auth.uid`.\n3.  **Calls:** The denormalized `callerId` and `receiverId` fields in each `Call` document enable QAP-compliant listing of calls. A user can query for their calls by filtering on these fields: `db.collection('calls').where('callerId', '==', request.auth.uid).get()` or `db.collection('calls').where('receiverId', '==', request.auth.uid).get()`. The security rules then validate that `request.auth.uid` matches either the `callerId` or `receiverId` in the retrieved documents, enforcing access control without needing to filter results after retrieval. This makes `list` operations efficient and secure."
+    ]
   }
 }
