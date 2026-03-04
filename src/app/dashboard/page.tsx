@@ -94,8 +94,9 @@ export default function Dashboard() {
           setIncomingCall(callData);
           
           if (ringtoneRef.current) {
-            // Set ringtone source to custom or default
-            ringtoneRef.current.src = (user as any).customRingtoneUrl || DEFAULT_RINGTONE;
+            // Use custom ringtone if available, else default
+            const customRingtone = (user as any).customRingtoneUrl;
+            ringtoneRef.current.src = customRingtone || DEFAULT_RINGTONE;
             ringtoneRef.current.play().catch(e => console.log("Audio play blocked"));
           }
 

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Wifi, Loader2, Smartphone, ChevronRight } from "lucide-react";
+import { ArrowLeft, Wifi, Loader2, Smartphone, ChevronRight, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/context/UserContext";
@@ -28,33 +28,39 @@ export default function BuyDataPage() {
   const [plans, setPlans] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchPlans = async (networkId: string) => {
     setIsLoading(true);
     try {
-      // Datahouse.com.ng API Fetch with provided key
       const response = await fetch(`https://datahouse.com.ng/api/data_plans?network=${networkId}`, {
         headers: { 'Authorization': 'Token 80ca2a529de4afa096c4eabefeb275dafe3a8941' }
       });
       const data = await response.json();
-      setPlans(data || []);
+      // Ensure we list ALL returned plans
+      setPlans(Array.isArray(data) ? data : data.results || []);
     } catch (err) {
-      // Fallback data if API is inaccessible from browser CORS
+      // High-quality fallback if API is blocked by CORS in browser
       const fallbacks: Record<string, any[]> = {
         mtn: [
           { id: 1, name: "MTN 500MB (SME)", price: 150 },
           { id: 2, name: "MTN 1GB (SME)", price: 280 },
           { id: 3, name: "MTN 2GB (SME)", price: 560 },
+          { id: 10, name: "MTN 5GB (SME)", price: 1400 },
+          { id: 11, name: "MTN 10GB (SME)", price: 2800 },
         ],
         airtel: [
           { id: 4, name: "Airtel 1GB (Corporate)", price: 300 },
           { id: 5, name: "Airtel 2GB (Corporate)", price: 600 },
+          { id: 12, name: "Airtel 5GB (Corporate)", price: 1500 },
         ],
         glo: [
           { id: 6, name: "Glo 1.5GB", price: 450 },
+          { id: 13, name: "Glo 2.5GB", price: 750 },
         ],
         "9mobile": [
           { id: 7, name: "9mobile 1.5GB", price: 500 },
+          { id: 14, name: "9mobile 3GB", price: 950 },
         ]
       };
       setPlans(fallbacks[networkId] || []);
@@ -74,20 +80,27 @@ export default function BuyDataPage() {
       toast({ variant: "destructive", title: "Invalid Phone", description: "Please enter a correct phone number." });
       return;
     }
-    if (!user || user.balance < plan.price) {
+    const charge = 10;
+    const totalCost = plan.price + charge;
+
+    if (!user || user.balance < totalCost) {
       toast({
         variant: "destructive",
         title: "Insufficient Balance",
-        description: "Please fund your wallet to complete this purchase.",
+        description: `Total cost (incl. ₦10 fee) is ₦${totalCost}. Please fund your wallet.`,
       });
       return;
     }
     toast({
       title: "Purchase Successful",
-      description: `${plan.name} activated for ${phoneNumber}.`,
+      description: `${plan.name} activated for ${phoneNumber}. ₦10 fee applied.`,
     });
     router.push("/dashboard");
   };
+
+  const filteredPlans = plans.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -101,7 +114,7 @@ export default function BuyDataPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl font-bold">{step === "network" ? "Select Network" : "Choose Plan"}</h1>
+          <h1 className="text-2xl font-bold">{step === "network" ? "Select Network" : "Choose Data Plan"}</h1>
         </div>
 
         {step === "network" ? (
@@ -136,29 +149,49 @@ export default function BuyDataPage() {
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <Label className="text-[10px] uppercase font-bold text-muted-foreground">Available {selectedNetwork?.toUpperCase()} Plans</Label>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] uppercase font-bold text-muted-foreground">
+                    Available {selectedNetwork?.toUpperCase()} Plans
+                  </Label>
+                  <span className="text-[10px] font-bold text-primary">₦10 Fee Applied</span>
+                </div>
+
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search plans..." 
+                    className="pl-9 h-9 text-xs rounded-lg"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+
                 {isLoading ? (
                   <div className="flex flex-col items-center py-10 gap-2">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-xs">Fetching live rates...</p>
+                    <p className="text-xs">Fetching all live rates...</p>
                   </div>
                 ) : (
-                  <div className="grid gap-2">
-                    {plans.map((plan) => (
-                      <Button 
-                        key={plan.id}
-                        variant="outline"
-                        className="h-auto p-4 flex items-center justify-between rounded-2xl hover:bg-primary/5 border-none shadow-sm text-left group"
-                        onClick={() => handlePurchase(plan)}
-                      >
-                        <div className="flex flex-col">
-                          <span className="font-bold text-sm">{plan.name}</span>
-                          <span className="text-green-600 font-bold text-xs">₦{plan.price.toLocaleString()}</span>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                      </Button>
-                    ))}
+                  <div className="grid gap-2 max-h-[400px] overflow-y-auto pr-1 scrollbar-hide">
+                    {filteredPlans.length > 0 ? (
+                      filteredPlans.map((plan) => (
+                        <Button 
+                          key={plan.id}
+                          variant="outline"
+                          className="h-auto p-4 flex items-center justify-between rounded-2xl hover:bg-primary/5 border-none shadow-sm text-left group"
+                          onClick={() => handlePurchase(plan)}
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-bold text-sm">{plan.name}</span>
+                            <span className="text-green-600 font-bold text-xs">₦{plan.price.toLocaleString()}</span>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                        </Button>
+                      ))
+                    ) : (
+                      <p className="text-center py-10 text-xs text-muted-foreground">No plans found matching your search.</p>
+                    )}
                   </div>
                 )}
               </div>
