@@ -44,11 +44,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { errorEmitter } from "@/firebase/error-emitter";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
   const { user, logout, isLoading: isUserLoading } = useUser();
   const { firestore, user: firebaseUser, isUserLoading: isFirebaseLoading } = useFirebase();
   const router = useRouter();
+  const { toast } = useToast();
+
   const [isCalling, setIsCalling] = useState<{ 
     isOpen: boolean; 
     type: "voice" | "video";
@@ -65,9 +68,9 @@ export default function Dashboard() {
     }
   }, [user, isUserLoading, router]);
 
-  // Listen for incoming calls - only when both local user and firebase auth are ready
+  // Listen for incoming calls
   useEffect(() => {
-    if (!firestore || !user || !firebaseUser) return;
+    if (!firestore || !user?.phoneNumber || !firebaseUser) return;
 
     const callsRef = collection(firestore, "calls");
     const q = query(
@@ -83,7 +86,6 @@ export default function Dashboard() {
         }
       });
     }, async (error) => {
-      // Specialized error handling for permission issues
       const permissionError = new FirestorePermissionError({
         path: "calls",
         operation: 'list',
@@ -106,10 +108,28 @@ export default function Dashboard() {
 
   const handleStartCall = (type: "voice" | "video") => {
     if (!targetNumber) {
-      alert("Please enter a phone number to call");
+      toast({
+        variant: "destructive",
+        title: "Number Required",
+        description: "Please enter a phone number to start a call.",
+      });
       return;
     }
-    setIsCalling({ isOpen: true, type, receiverId: targetNumber });
+    
+    if (targetNumber === user.phoneNumber) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Number",
+        description: "You cannot call yourself.",
+      });
+      return;
+    }
+
+    setIsCalling({ 
+      isOpen: true, 
+      type, 
+      receiverId: targetNumber 
+    });
   };
 
   const handleAcceptCall = () => {
@@ -135,27 +155,30 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-8">
       {/* Header */}
-      <header className="bg-white border-b px-4 py-4 sticky top-0 z-30 shadow-sm">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
+      <header className="bg-white border-b px-4 py-4 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 shrink-0">
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-white font-bold text-xl">L</span>
             </div>
-            <h1 className="text-xl font-bold text-primary">Lere Connect</h1>
+            <h1 className="text-xl font-bold text-primary hidden sm:block">Lere Connect</h1>
           </div>
-          <div className="flex gap-2 items-center">
+          
+          <div className="flex flex-1 max-w-md items-center gap-2 bg-accent/30 p-1 rounded-full border border-primary/10">
             <Input 
-              placeholder="Phone number to call" 
-              className="w-40 h-8 text-xs bg-accent/50 border-none rounded-full px-4"
+              placeholder="Who to call?" 
+              className="h-9 border-none bg-transparent shadow-none focus-visible:ring-0 text-sm"
               value={targetNumber}
               onChange={(e) => setTargetNumber(e.target.value)}
             />
-            <Button size="sm" variant="outline" className="rounded-full border-primary/20 text-primary hover:bg-primary/5" onClick={() => handleStartCall("voice")}>
-              <Phone className="h-4 w-4 mr-1" /> Voice
-            </Button>
-            <Button size="sm" className="rounded-full bg-primary hover:bg-primary/90" onClick={() => handleStartCall("video")}>
-              <Video className="h-4 w-4 mr-1" /> Video
-            </Button>
+            <div className="flex gap-1 pr-1">
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 text-primary" onClick={() => handleStartCall("voice")}>
+                <Phone className="h-4 w-4" />
+              </Button>
+              <Button size="sm" className="h-8 px-3 rounded-full bg-primary hover:bg-primary/90 text-[10px] font-bold" onClick={() => handleStartCall("video")}>
+                <Video className="h-4 w-4 mr-1" /> CALL
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -163,7 +186,7 @@ export default function Dashboard() {
       <main className="max-w-4xl mx-auto p-4 space-y-6">
         {/* User Card */}
         <Card className="bg-gradient-to-br from-primary to-primary/80 border-none shadow-xl text-white relative overflow-hidden">
-          <div className="absolute right-0 bottom-0 opacity-10 scale-150 rotate-12">
+          <div className="absolute right-0 bottom-0 opacity-10 scale-150 rotate-12 pointer-events-none">
              <CreditCard size={200} />
           </div>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
