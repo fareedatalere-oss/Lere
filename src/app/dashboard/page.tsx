@@ -35,7 +35,9 @@ import {
   BookOpen,
   MessageCircle,
   PlayCircle,
-  Coins
+  Coins,
+  Repeat,
+  Headset
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CallInterface } from "@/components/CallInterface";
@@ -155,8 +157,8 @@ export default function Dashboard() {
       <header className="bg-white border-b px-4 py-4 sticky top-0 z-40 shadow-sm">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 shrink-0">
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-xl">L</span>
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg cursor-pointer" onClick={() => router.push("/profile")}>
+              <User className="text-white h-6 w-6" />
             </div>
             <h1 className="text-xl font-bold text-primary hidden sm:block">Lere Connect</h1>
           </div>
@@ -177,6 +179,12 @@ export default function Dashboard() {
                 <Video className="h-4 w-4 mr-1" /> CALL
               </Button>
             </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={() => router.push("/profile")} className="rounded-full">
+              <User className="h-5 w-5 text-muted-foreground" />
+            </Button>
           </div>
         </div>
       </header>
@@ -213,40 +221,61 @@ export default function Dashboard() {
 
         <IceBreaker />
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
           <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/actions/watch")}>
             <div className="w-10 h-10 bg-yellow-50 rounded-full flex items-center justify-center">
               <PlayCircle className="h-5 w-5 text-yellow-600" />
             </div>
-            <span className="text-xs font-semibold">Watch & Earn</span>
+            <span className="text-xs font-semibold text-center">Watch & Earn</span>
+          </Button>
+
+          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/actions/airtime-to-cash")}>
+            <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center">
+              <Repeat className="h-5 w-5 text-green-600" />
+            </div>
+            <span className="text-xs font-semibold text-center">Airtime to Cash</span>
           </Button>
 
           <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/actions/buy-data")}>
             <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
               <Wifi className="h-5 w-5 text-primary" />
             </div>
-            <span className="text-xs font-semibold">Buy Data</span>
+            <span className="text-xs font-semibold text-center">Buy Data</span>
           </Button>
 
           <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/actions/buy-number")}>
             <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center">
               <Hash className="h-5 w-5 text-secondary" />
             </div>
-            <span className="text-xs font-semibold">Buy Number</span>
+            <span className="text-xs font-semibold text-center">Buy Number</span>
           </Button>
 
           <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/actions/sms")}>
             <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
               <MessageCircle className="h-5 w-5 text-primary" />
             </div>
-            <span className="text-xs font-semibold">SMS</span>
+            <span className="text-xs font-semibold text-center">SMS</span>
           </Button>
 
           <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/library")}>
             <div className="w-10 h-10 bg-secondary/10 rounded-full flex items-center justify-center">
               <BookOpen className="h-5 w-5 text-secondary" />
             </div>
-            <span className="text-xs font-semibold">Library</span>
+            <span className="text-xs font-semibold text-center">Library</span>
+          </Button>
+
+          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/profile")}>
+            <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">
+              <User className="h-5 w-5 text-slate-600" />
+            </div>
+            <span className="text-xs font-semibold text-center">Profile</span>
+          </Button>
+
+          <Button variant="outline" className="h-28 flex flex-col gap-2 rounded-2xl bg-white border-none shadow-sm hover:shadow-md" onClick={() => router.push("/actions/contact")}>
+            <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center">
+              <Headset className="h-5 w-5 text-red-600" />
+            </div>
+            <span className="text-xs font-semibold text-center">Contact</span>
           </Button>
         </div>
 
