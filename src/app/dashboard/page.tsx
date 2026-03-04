@@ -3,24 +3,87 @@
 
 import { useState, useEffect } from "react";
 import { UserProvider, useUser } from "@/context/UserContext";
+import { useFirebase } from "@/firebase";
+import { 
+  collection, 
+  query, 
+  where, 
+  onSnapshot, 
+  doc, 
+  updateDoc 
+} from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Phone, Video, Send, Smartphone, Wifi, CreditCard, User, MessageSquare, LogOut, Wallet, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { 
+  Phone, 
+  Video, 
+  Send, 
+  Smartphone, 
+  Wifi, 
+  CreditCard, 
+  User, 
+  MessageSquare, 
+  LogOut, 
+  Wallet, 
+  Loader2,
+  BellRing
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CallInterface } from "@/components/CallInterface";
 import { IceBreaker } from "@/components/IceBreaker";
-import { Separator } from "@/components/ui/separator";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
 
 function DashboardContent() {
   const { user, logout, isLoading } = useUser();
+  const { firestore } = useFirebase();
   const router = useRouter();
-  const [isCalling, setIsCalling] = useState<{ isOpen: boolean; type: "voice" | "video" }>({ isOpen: false, type: "voice" });
+  const [isCalling, setIsCalling] = useState<{ 
+    isOpen: boolean; 
+    type: "voice" | "video";
+    receiverId?: string;
+    incomingCallId?: string;
+  }>({ isOpen: false, type: "voice" });
+
+  const [targetNumber, setTargetNumber] = useState("");
+  const [incomingCall, setIncomingCall] = useState<any>(null);
 
   useEffect(() => {
     if (!isLoading && !user) {
       router.push("/login");
     }
   }, [user, isLoading, router]);
+
+  // Listen for incoming calls
+  useEffect(() => {
+    if (!firestore || !user) return;
+
+    const callsRef = collection(firestore, "calls");
+    const q = query(
+      callsRef, 
+      where("receiverId", "==", user.phoneNumber), 
+      where("status", "==", "ringing")
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "added") {
+          setIncomingCall({ id: change.doc.id, ...change.doc.data() });
+        }
+      });
+    });
+
+    return () => unsubscribe();
+  }, [firestore, user]);
 
   if (isLoading) {
     return (
@@ -32,8 +95,32 @@ function DashboardContent() {
 
   if (!user) return null;
 
-  const handleCall = (type: "voice" | "video") => {
-    setIsCalling({ isOpen: true, type });
+  const handleStartCall = (type: "voice" | "video") => {
+    if (!targetNumber) {
+      alert("Please enter a phone number to call");
+      return;
+    }
+    setIsCalling({ isOpen: true, type, receiverId: targetNumber });
+  };
+
+  const handleAcceptCall = () => {
+    if (incomingCall) {
+      setIsCalling({ 
+        isOpen: true, 
+        type: incomingCall.callType, 
+        incomingCallId: incomingCall.id,
+        receiverId: incomingCall.callerId
+      });
+      setIncomingCall(null);
+    }
+  };
+
+  const handleRejectCall = () => {
+    if (incomingCall && firestore) {
+      const callDoc = doc(firestore, "calls", incomingCall.id);
+      updateDoc(callDoc, { status: 'rejected' });
+      setIncomingCall(null);
+    }
   };
 
   return (
@@ -47,11 +134,17 @@ function DashboardContent() {
             </div>
             <h1 className="text-xl font-bold text-primary">Lere Connect</h1>
           </div>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="rounded-full border-primary/20 text-primary hover:bg-primary/5" onClick={() => handleCall("voice")}>
+          <div className="flex gap-2 items-center">
+            <Input 
+              placeholder="Phone number to call" 
+              className="w-40 h-8 text-xs bg-accent/50 border-none rounded-full px-4"
+              value={targetNumber}
+              onChange={(e) => setTargetNumber(e.target.value)}
+            />
+            <Button size="sm" variant="outline" className="rounded-full border-primary/20 text-primary hover:bg-primary/5" onClick={() => handleStartCall("voice")}>
               <Phone className="h-4 w-4 mr-1" /> Voice
             </Button>
-            <Button size="sm" className="rounded-full bg-primary hover:bg-primary/90" onClick={() => handleCall("video")}>
+            <Button size="sm" className="rounded-full bg-primary hover:bg-primary/90" onClick={() => handleStartCall("video")}>
               <Video className="h-4 w-4 mr-1" /> Video
             </Button>
           </div>
@@ -78,7 +171,7 @@ function DashboardContent() {
           <CardContent>
             <div className="grid grid-cols-2 gap-4 mt-2">
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/5">
-                <p className="text-[10px] uppercase tracking-wider text-white/50 mb-1">Phone Number</p>
+                <p className="text-[10px] uppercase tracking-wider text-white/50 mb-1">My Number</p>
                 <p className="text-sm font-mono font-medium">{user.phoneNumber}</p>
               </div>
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3 border border-white/5">
@@ -144,11 +237,42 @@ function DashboardContent() {
         </div>
       </main>
 
+      {/* Incoming Call Notification */}
+      <AlertDialog open={!!incomingCall}>
+        <AlertDialogContent className="bg-white border-none shadow-2xl rounded-3xl p-8 flex flex-col items-center">
+          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6 animate-bounce">
+            <BellRing className="h-10 w-10 text-primary" />
+          </div>
+          <AlertDialogHeader className="text-center">
+            <AlertDialogTitle className="text-2xl font-bold">Incoming {incomingCall?.callType} Call</AlertDialogTitle>
+            <AlertDialogDescription className="text-lg">
+              {incomingCall?.callerId} is calling you...
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-4 w-full mt-8">
+            <AlertDialogCancel 
+              onClick={handleRejectCall}
+              className="flex-1 h-14 rounded-2xl border-2 border-red-100 text-red-500 hover:bg-red-50 hover:text-red-600 font-bold"
+            >
+              Reject
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleAcceptCall}
+              className="flex-1 h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold"
+            >
+              Accept
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Call UI */}
       <CallInterface 
         isOpen={isCalling.isOpen} 
         type={isCalling.type} 
-        onClose={() => setIsCalling({ ...isCalling, isOpen: false })} 
+        receiverId={isCalling.receiverId}
+        incomingCallId={isCalling.incomingCallId}
+        onClose={() => setIsCalling({ ...isCalling, isOpen: false, incomingCallId: undefined })} 
       />
     </div>
   );
