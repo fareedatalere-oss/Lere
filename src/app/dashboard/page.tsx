@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -28,7 +29,8 @@ import {
   LogOut, 
   Wallet, 
   Loader2,
-  BellRing
+  BellRing,
+  PlusCircle
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CallInterface } from "@/components/CallInterface";
@@ -70,14 +72,12 @@ export default function Dashboard() {
     }
   }, [user, isUserLoading, router]);
 
-  // Request Notification Permission
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window) {
       Notification.requestPermission();
     }
   }, []);
 
-  // Listen for incoming calls
   useEffect(() => {
     if (!firestore || !user?.phoneNumber || !firebaseUser) return;
 
@@ -244,8 +244,17 @@ export default function Dashboard() {
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div className="space-y-1">
               <CardTitle className="text-sm font-medium text-white/70">Total Balance</CardTitle>
-              <div className="text-3xl font-bold tracking-tight">
-                ₦{user.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              <div className="flex items-center gap-3">
+                <div className="text-3xl font-bold tracking-tight">
+                  ₦{user.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </div>
+                <Button 
+                  size="sm" 
+                  className="bg-white/20 hover:bg-white/30 text-white rounded-full h-8 px-3 flex items-center gap-1 backdrop-blur-md"
+                  onClick={() => toast({ title: "Funding Interface", description: "Payment gateway loading..." })}
+                >
+                  <PlusCircle className="h-4 w-4" /> Fund
+                </Button>
               </div>
             </div>
             <div className="h-10 w-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center">
