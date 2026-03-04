@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useUser } from "@/context/UserContext";
 import { useFirebase } from "@/firebase";
 import { 
@@ -9,8 +9,6 @@ import {
   query, 
   where, 
   onSnapshot, 
-  doc, 
-  updateDoc,
   getDocs,
   limit
 } from "firebase/firestore";
@@ -70,6 +68,7 @@ export default function Dashboard() {
   const [targetNumber, setTargetNumber] = useState("");
   const [incomingCall, setIncomingCall] = useState<any>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const ringtoneRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -93,6 +92,11 @@ export default function Dashboard() {
           const callData = { id: change.doc.id, ...change.doc.data() };
           setIncomingCall(callData);
           
+          // Play Ringtone
+          if (ringtoneRef.current) {
+            ringtoneRef.current.play().catch(e => console.log("Audio play blocked by browser. User interaction needed."));
+          }
+
           if (Notification.permission === "granted") {
             new Notification("Incoming Call", {
               body: `${callData.callerId} is calling you on Lere Connect!`,
@@ -117,6 +121,14 @@ export default function Dashboard() {
       Notification.requestPermission();
     }
   }, []);
+
+  // Stop ringtone when call handled
+  useEffect(() => {
+    if (!incomingCall && ringtoneRef.current) {
+      ringtoneRef.current.pause();
+      ringtoneRef.current.currentTime = 0;
+    }
+  }, [incomingCall]);
 
   if (isUserLoading || isFirebaseLoading) {
     return (
@@ -165,6 +177,14 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-8">
+      {/* Hidden Audio for Ringtone */}
+      <audio 
+        ref={ringtoneRef} 
+        src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3" 
+        loop 
+        preload="auto"
+      />
+
       <header className="bg-white border-b px-4 py-4 sticky top-0 z-40 shadow-sm">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 shrink-0">
