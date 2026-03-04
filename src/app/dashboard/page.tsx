@@ -10,14 +10,12 @@ import {
   where, 
   onSnapshot, 
   getDocs,
-  limit
+  limit,
+  orderBy
 } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { 
-  Phone, 
-  Video, 
   User, 
   LogOut, 
   Wallet, 
@@ -33,10 +31,12 @@ import {
   Headset,
   Wifi,
   Smartphone,
-  Send
+  Send,
+  Grid
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CallInterface } from "@/components/CallInterface";
+import { Dialer } from "@/components/Dialer";
 import { IceBreaker } from "@/components/IceBreaker";
 import { 
   AlertDialog, 
@@ -65,9 +65,8 @@ export default function Dashboard() {
     incomingCallId?: string;
   }>({ isOpen: false, type: "voice" });
 
-  const [targetNumber, setTargetNumber] = useState("");
+  const [isDialerOpen, setIsDialerOpen] = useState(false);
   const [incomingCall, setIncomingCall] = useState<any>(null);
-  const [isValidating, setIsValidating] = useState(false);
   const ringtoneRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -92,15 +91,13 @@ export default function Dashboard() {
           const callData = { id: change.doc.id, ...change.doc.data() };
           setIncomingCall(callData);
           
-          // Play Ringtone
           if (ringtoneRef.current) {
-            ringtoneRef.current.play().catch(e => console.log("Audio play blocked by browser. User interaction needed."));
+            ringtoneRef.current.play().catch(e => console.log("Audio play blocked"));
           }
 
           if (Notification.permission === "granted") {
             new Notification("Incoming Call", {
-              body: `${callData.callerId} is calling you on Lere Connect!`,
-              icon: "/icon.png"
+              body: `${callData.callerId} is calling you!`,
             });
           }
         }
@@ -122,7 +119,6 @@ export default function Dashboard() {
     }
   }, []);
 
-  // Stop ringtone when call handled
   useEffect(() => {
     if (!incomingCall && ringtoneRef.current) {
       ringtoneRef.current.pause();
@@ -140,27 +136,9 @@ export default function Dashboard() {
 
   if (!user) return null;
 
-  const handleStartCall = async (type: "voice" | "video") => {
-    if (!targetNumber) {
-      toast({ variant: "destructive", title: "Number Required", description: "Please enter a phone number." });
-      return;
-    }
-    setIsValidating(true);
-    try {
-      const usersRef = collection(firestore!, "users");
-      const q = query(usersRef, where("phoneNumber", "==", targetNumber), limit(1));
-      const querySnapshot = await getDocs(q);
-      if (querySnapshot.empty) {
-        toast({ variant: "destructive", title: "Not Registered", description: "This number isn't yet registered with Lere Connect." });
-        setIsValidating(false);
-        return;
-      }
-      setIsCalling({ isOpen: true, type, receiverId: targetNumber });
-    } catch (err) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to verify number." });
-    } finally {
-      setIsValidating(false);
-    }
+  const handleStartCall = (type: "voice" | "video", number: string) => {
+    setIsCalling({ isOpen: true, type, receiverId: number });
+    setIsDialerOpen(false);
   };
 
   const handleAcceptCall = () => {
@@ -177,7 +155,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-8">
-      {/* Hidden Audio for Ringtone */}
       <audio 
         ref={ringtoneRef} 
         src="https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3" 
@@ -186,42 +163,28 @@ export default function Dashboard() {
       />
 
       <header className="bg-white border-b px-4 py-4 sticky top-0 z-40 shadow-sm">
-        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 shrink-0">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg cursor-pointer" onClick={() => router.push("/profile")}>
               <User className="text-white h-6 w-6" />
             </div>
             <h1 className="text-xl font-bold text-primary hidden sm:block">Lere Connect</h1>
           </div>
           
-          <div className="flex flex-1 max-w-md items-center gap-2 bg-accent/30 p-1 rounded-full border border-primary/10">
-            <Input 
-              placeholder="Enter number..." 
-              className="h-9 border-none bg-transparent shadow-none focus-visible:ring-0 text-sm"
-              value={targetNumber}
-              onChange={(e) => setTargetNumber(e.target.value)}
-              disabled={isValidating}
-            />
-            <div className="flex gap-1 pr-1">
-              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 rounded-full text-primary" onClick={() => handleStartCall("voice")}>
-                {isValidating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Phone className="h-4 w-4" />}
-              </Button>
-              <Button size="sm" className="h-8 px-3 rounded-full bg-primary" onClick={() => handleStartCall("video")}>
-                <Video className="h-4 w-4 mr-1" /> CALL
-              </Button>
-            </div>
-          </div>
+          <Button 
+            className="rounded-full bg-primary hover:bg-primary/90 shadow-md h-12 px-6"
+            onClick={() => setIsDialerOpen(true)}
+          >
+            <Grid className="h-5 w-5 mr-2" /> DIAL
+          </Button>
 
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => router.push("/profile")} className="rounded-full">
-              <User className="h-5 w-5 text-muted-foreground" />
-            </Button>
-          </div>
+          <Button variant="ghost" size="icon" onClick={() => router.push("/profile")} className="rounded-full">
+            <User className="h-5 w-5 text-muted-foreground" />
+          </Button>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto p-4 space-y-6">
-        {/* Wallet Section */}
         <Card className="bg-gradient-to-br from-primary to-primary/80 border-none shadow-xl text-white relative overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div className="space-y-1">
@@ -253,7 +216,6 @@ export default function Dashboard() {
 
         <IceBreaker />
 
-        {/* Action Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
           <Button variant="outline" className="h-24 flex flex-col gap-1 rounded-2xl bg-white border-none shadow-sm hover:shadow-md transition-all" onClick={() => router.push("/actions/watch")}>
             <div className="w-8 h-8 bg-yellow-50 rounded-full flex items-center justify-center">
@@ -332,6 +294,12 @@ export default function Dashboard() {
           </Button>
         </div>
       </main>
+
+      <Dialer 
+        isOpen={isDialerOpen} 
+        onClose={() => setIsDialerOpen(false)} 
+        onStartCall={handleStartCall}
+      />
 
       <AlertDialog open={!!incomingCall}>
         <AlertDialogContent className="bg-white rounded-3xl p-8 flex flex-col items-center">
