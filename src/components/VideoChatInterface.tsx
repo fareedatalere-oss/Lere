@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -15,7 +16,8 @@ import {
   VideoOff,
   UserPlus,
   Type,
-  PhoneOff
+  PhoneOff,
+  Radio
 } from "lucide-react";
 import { useUser } from "@/context/UserContext";
 import { useFirebase } from "@/firebase";
@@ -30,6 +32,7 @@ import {
   serverTimestamp 
 } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "./ui/badge";
 
 interface VideoChatInterfaceProps {
   isOpen: boolean;
@@ -144,7 +147,7 @@ export function VideoChatInterface({ isOpen, onClose, receiverId, incomingCallId
 
       // Listen for messages on this call
       onSnapshot(collection(callDocRef.current, "messages"), (s) => {
-        const msgs = s.docs.map(d => d.data()).sort((a,b) => a.timestamp?.seconds - b.timestamp?.seconds);
+        const msgs = s.docs.map(d => d.data()).sort((a,b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
         setMessages(msgs);
       });
 
@@ -184,7 +187,6 @@ export function VideoChatInterface({ isOpen, onClose, receiverId, incomingCallId
   const handleAddMember = async () => {
     if (!addNumber) return;
     toast({ title: "Adding Participant", description: `Ringing ${addNumber}...` });
-    // Mesh conferencing would involve additional RTCPeerConnections
     setShowAddMember(false);
     setAddNumber("");
   };
@@ -201,7 +203,6 @@ export function VideoChatInterface({ isOpen, onClose, receiverId, incomingCallId
     voiceNoteRecorder.current.stop();
     setIsRecording(false);
     toast({ title: "Voice Note Sent" });
-    // In a real app, upload blob and send URL. Here we simulate the message entry.
     await addDoc(collection(callDocRef.current, "messages"), {
       senderId: user?.phoneNumber,
       type: "audio",

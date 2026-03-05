@@ -3,10 +3,10 @@
 
 /**
  * @fileOverview Server actions for Datahouse API to bypass CORS restrictions.
- * Updated with user-provided Token and Endpoints.
+ * Updated with user-provided REAL Token and Endpoints.
  */
 
-const DATAHOUSE_TOKEN = 'Token 66f2e5c39ac8640f13cd888f161385b12f7e5e92';
+const DATAHOUSE_TOKEN = 'Token 80ca2a529de4afa096c4eabefeb275dafe3a8941';
 const BASE_URL = 'https://www.datahouse.com.ng/api';
 
 async function datahouseFetch(endpoint: string, options: RequestInit = {}) {
