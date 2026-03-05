@@ -30,6 +30,11 @@ interface User {
   pin: string;
   createdAt?: string;
   myReferralCode?: string;
+  faceLoginActive?: boolean;
+  voiceLoginActive?: boolean;
+  faceData?: string | null;
+  voiceData?: string | null;
+  customRingtoneUrl?: string;
 }
 
 interface UserContextType {
@@ -95,7 +100,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         balance: 0.00,
         rewardBalance: 0.00,
         createdAt: new Date().toISOString(),
-        myReferralCode: "LERE" + Math.floor(1000 + Math.random() * 9000)
+        myReferralCode: "LERE" + Math.floor(1000 + Math.random() * 9000),
+        faceLoginActive: false,
+        voiceLoginActive: false
       };
       
       await setDoc(doc(firestore, "users", uid), fullUser);

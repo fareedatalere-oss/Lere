@@ -21,7 +21,9 @@ import {
   MicVocal,
   Copy,
   LogOut,
-  ShieldAlert
+  ShieldAlert,
+  Mic,
+  ShieldCheck
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
@@ -109,15 +111,29 @@ export default function ProfilePage() {
     toast({ title: "Copied", description: `${label} copied to clipboard.` });
   };
 
+  const handleDisableBiometric = async (type: 'face' | 'voice') => {
+    if (!user.id || !firestore) return;
+    setIsUpdating(true);
+    try {
+      const updates = type === 'face' 
+        ? { faceLoginActive: false, faceData: null } 
+        : { voiceLoginActive: false, voiceData: null };
+      await updateDoc(doc(firestore, "users", user.id), updates);
+      toast({ title: "Biometric Disabled", description: `${type === 'face' ? 'Face' : 'Voice'} login has been removed.` });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background p-4 pb-20">
       <div className="max-w-md mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full bg-white shadow-sm">
+          <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard")} className="rounded-full bg-white shadow-sm">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-2xl font-bold">Account Center</h1>
-          <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard")}>
+          <Button variant="ghost" size="icon" onClick={() => router.push("/profile/settings")}>
             <Settings className="h-5 w-5 text-muted-foreground" />
           </Button>
         </div>
@@ -175,33 +191,51 @@ export default function ProfilePage() {
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </button>
 
-            <button className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left">
+            {/* Face Login */}
+            <div className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center">
                   <ScanFace className="h-5 w-5" />
                 </div>
-                <div>
+                <div onClick={() => !user.faceLoginActive && !user.voiceLoginActive && router.push("/profile/face-setup")}>
                   <p className="text-sm font-bold">Face Login</p>
-                  <p className="text-[10px] text-muted-foreground">Secure biometric entry</p>
+                  <p className="text-[10px] text-muted-foreground">{user.faceLoginActive ? 'Biometric enabled' : 'Secure biometric entry'}</p>
                 </div>
               </div>
-              <span className="text-[10px] font-bold text-primary uppercase">OFF</span>
-            </button>
+              <div className="flex items-center gap-2">
+                {user.faceLoginActive ? (
+                  <Button variant="ghost" size="sm" onClick={() => handleDisableBiometric('face')} className="text-red-500 h-8 px-2">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <span className="text-[10px] font-bold text-primary uppercase">OFF</span>
+                )}
+              </div>
+            </div>
 
-            <button className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left">
+            {/* Voice Lock */}
+            <div className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-teal-50 text-teal-500 rounded-xl flex items-center justify-center">
                   <MicVocal className="h-5 w-5" />
                 </div>
-                <div>
+                <div onClick={() => !user.voiceLoginActive && !user.faceLoginActive && router.push("/profile/voice-setup")}>
                   <p className="text-sm font-bold">Voice Lock</p>
-                  <p className="text-[10px] text-muted-foreground">Unlock with voice print</p>
+                  <p className="text-[10px] text-muted-foreground">{user.voiceLoginActive ? 'Voice print active' : 'Unlock with voice print'}</p>
                 </div>
               </div>
-              <span className="text-[10px] font-bold text-primary uppercase">OFF</span>
-            </button>
+              <div className="flex items-center gap-2">
+                {user.voiceLoginActive ? (
+                  <Button variant="ghost" size="sm" onClick={() => handleDisableBiometric('voice')} className="text-red-500 h-8 px-2">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <span className="text-[10px] font-bold text-primary uppercase">OFF</span>
+                )}
+              </div>
+            </div>
 
-            <button className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left" onClick={() => router.push("/actions/contact")}>
+            <button className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left" onClick={() => router.push("/profile/settings")}>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-slate-50 text-slate-500 rounded-xl flex items-center justify-center">
                   <Settings className="h-5 w-5" />

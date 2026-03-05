@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useUser } from "@/context/UserContext";
 import { useFirebase } from "@/firebase";
 import { 
@@ -31,7 +32,11 @@ import {
   Grid,
   Zap,
   Tv,
-  GraduationCap
+  GraduationCap,
+  Lock,
+  Mic,
+  ScanFace,
+  Delete
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CallInterface } from "@/components/CallInterface";
@@ -51,8 +56,10 @@ import {
 import { FirestorePermissionError } from "@/firebase/errors";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 
 const DEFAULT_RINGTONE = "https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3";
+const LOCK_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
 export default function Dashboard() {
   const { user, logout, isLoading: isUserLoading } = useUser();
@@ -70,6 +77,31 @@ export default function Dashboard() {
   const [isDialerOpen, setIsDialerOpen] = useState(false);
   const [incomingCall, setIncomingCall] = useState<any>(null);
   const ringtoneRef = useRef<HTMLAudioElement | null>(null);
+
+  // Inactivity Lock State
+  const [isLocked, setIsLocked] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [isBiometricScanning, setIsBiometricScanning] = useState(false);
+  const lockTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const resetLockTimer = useCallback(() => {
+    if (lockTimerRef.current) clearTimeout(lockTimerRef.current);
+    if (!isLocked) {
+      lockTimerRef.current = setTimeout(() => {
+        setIsLocked(true);
+      }, LOCK_TIMEOUT);
+    }
+  }, [isLocked]);
+
+  useEffect(() => {
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    events.forEach(event => document.addEventListener(event, resetLockTimer));
+    resetLockTimer();
+    return () => {
+      events.forEach(event => document.removeEventListener(event, resetLockTimer));
+      if (lockTimerRef.current) clearTimeout(lockTimerRef.current);
+    };
+  }, [resetLockTimer]);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -123,12 +155,28 @@ export default function Dashboard() {
     }
   }, []);
 
-  useEffect(() => {
-    if (!incomingCall && ringtoneRef.current) {
-      ringtoneRef.current.pause();
-      ringtoneRef.current.currentTime = 0;
+  const handleUnlock = () => {
+    if (pinInput === user?.pin) {
+      setIsLocked(false);
+      setPinInput("");
+      resetLockTimer();
+    } else {
+      toast({ variant: "destructive", title: "Invalid PIN", description: "Incorrect transaction PIN." });
+      setPinInput("");
     }
-  }, [incomingCall]);
+  };
+
+  const handleBiometricUnlock = async () => {
+    setIsBiometricScanning(true);
+    // Simulate biometric check
+    setTimeout(() => {
+      setIsBiometricScanning(false);
+      setIsLocked(false);
+      setPinInput("");
+      resetLockTimer();
+      toast({ title: "Unlocked", description: `Access granted via ${user?.faceLoginActive ? 'Face' : 'Voice'} recognition.` });
+    }, 2000);
+  };
 
   if (isUserLoading || isFirebaseLoading) {
     return (
@@ -139,6 +187,60 @@ export default function Dashboard() {
   }
 
   if (!user) return null;
+
+  if (isLocked) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-6 backdrop-blur-xl">
+        <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mb-8 shadow-inner">
+          <Lock className="h-10 w-10 text-primary" />
+        </div>
+        <h2 className="text-2xl font-bold mb-2">Account Locked</h2>
+        <p className="text-muted-foreground text-sm mb-8 text-center max-w-xs">Enter your transaction PIN to continue your session.</p>
+        
+        <div className="w-full max-w-xs space-y-6">
+          <div className="relative">
+            <Input 
+              type="password" 
+              placeholder="****" 
+              maxLength={4} 
+              className="h-16 text-center text-3xl tracking-[1em] rounded-3xl border-none bg-slate-100 shadow-inner"
+              value={pinInput}
+              onChange={(e) => setPinInput(e.target.value)}
+            />
+            {pinInput.length === 4 && (
+              <Button 
+                className="w-full h-14 mt-4 rounded-2xl bg-primary text-white font-bold text-lg"
+                onClick={handleUnlock}
+              >
+                Unlock Dashboard
+              </Button>
+            )}
+          </div>
+
+          {(user.faceLoginActive || user.voiceLoginActive) && (
+            <div className="flex flex-col items-center gap-4 pt-4">
+              <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Or use biometrics</p>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="h-20 w-20 rounded-full border-2 border-primary/20 bg-white shadow-lg"
+                onClick={handleBiometricUnlock}
+                disabled={isBiometricScanning}
+              >
+                {isBiometricScanning ? (
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                ) : user.faceLoginActive ? (
+                  <ScanFace className="h-8 w-8 text-primary" />
+                ) : (
+                  <Mic className="h-8 w-8 text-primary" />
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const handleStartDialAction = (type: "voice" | "video" | "chat", number: string) => {
     setIsCalling({ isOpen: true, type, receiverId: number });
