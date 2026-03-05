@@ -57,7 +57,6 @@ export default function LibraryPage() {
   const [aiContent, setAiContent] = useState<string | null>(null);
   const [isReaderLoading, setIsReaderLoading] = useState(false);
 
-  // Fetch published books from Firestore
   const publishedBooksQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, "published_books"), orderBy("createdAt", "desc"));
@@ -146,11 +145,8 @@ export default function LibraryPage() {
         category: selectedBook.category,
       });
       
-      if (content.startsWith("ERROR:")) {
-        toast({ variant: "destructive", title: "Config Error", description: content });
-        setAiContent(content);
-      } else {
-        setAiContent(content);
+      setAiContent(content);
+      if (!content.startsWith("ERROR:") && !content.startsWith("Failed to generate content:")) {
         localStorage.setItem(cacheKey, content);
       }
     } catch (err) {
@@ -331,7 +327,7 @@ export default function LibraryPage() {
             </div>
           ) : (
             <div className="prose prose-slate mt-8 text-lg leading-relaxed text-slate-700 whitespace-pre-wrap">
-              {aiContent || "Loading content..."}
+              {aiContent || "Generating knowledge..."}
             </div>
           )}
         </div>

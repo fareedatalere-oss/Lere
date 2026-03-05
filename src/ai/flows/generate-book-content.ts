@@ -17,8 +17,10 @@ const GenerateBookContentInputSchema = z.object({
 });
 export type GenerateBookContentInput = z.infer<typeof GenerateBookContentInputSchema>;
 
-const GenerateBookContentOutputSchema = z.string().describe('The generated educational content of the book.');
-export type GenerateBookContentOutput = z.infer<typeof GenerateBookContentOutputSchema>;
+const GenerateBookContentOutputSchema = z.object({
+  content: z.string().describe('The generated educational content of the book.')
+});
+export type GenerateBookContentOutput = string;
 
 export async function generateBookContent(input: GenerateBookContentInput): Promise<GenerateBookContentOutput> {
   return generateBookContentFlow(input);
@@ -41,7 +43,7 @@ const generateBookContentFlow = ai.defineFlow(
   {
     name: 'generateBookContentFlow',
     inputSchema: GenerateBookContentInputSchema,
-    outputSchema: GenerateBookContentOutputSchema,
+    outputSchema: z.string(),
   },
   async (input) => {
     if (!process.env.GOOGLE_GENAI_API_KEY && !process.env.GEMINI_API_KEY) {
@@ -50,8 +52,8 @@ const generateBookContentFlow = ai.defineFlow(
 
     try {
       const {output} = await prompt(input);
-      if (!output) return "Content generation completed but returned empty text.";
-      return output;
+      if (!output || !output.content) return "Content generation completed but returned empty text.";
+      return output.content;
     } catch (error: any) {
       console.error("Genkit Flow Error:", error);
       return `Failed to generate content: ${error.message || "Unknown AI error"}`;
