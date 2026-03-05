@@ -1,6 +1,8 @@
+
 'use server';
 /**
  * @fileOverview A Genkit flow that generates educational content for books in the library.
+ * Supports English and Arabic outputs based on category.
  *
  * - generateBookContent - A function that generates a chapter or summary for a specific book.
  * - GenerateBookContentInput - The input type (title and author).
@@ -36,7 +38,11 @@ const prompt = ai.definePrompt({
   Author: {{{author}}}
   Category: {{{category}}}
 
-  The content should be educational, structured with clear paragraphs, and informative. Provide at least 500 words of "real" text as if it were taken directly from a textbook or professional resource. Do not include any introductory filler text like "Here is the content...".`,
+  IMPORTANT INSTRUCTIONS:
+  - If the category is 'Qur'an', 'Hadiths', 'Islam' or contains 'Arabic', the output MUST be in clear, classical Arabic text with English translation below it.
+  - For all other categories, use professional, high-level English.
+  - Provide at least 500 words of "real" educational text. 
+  - Do not include any introductory filler text like "Here is the content...".`,
 });
 
 const generateBookContentFlow = ai.defineFlow(

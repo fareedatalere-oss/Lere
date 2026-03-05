@@ -2,7 +2,8 @@
 export type Category = 
   | "All" | "Science" | "ICT" | "Qur'an" | "Hadiths" | "Islam" | "Christian" 
   | "History" | "Laws" | "Philosophy" | "Literature" | "Arts" | "Biographies"
-  | "Economics" | "Health" | "Physiology" | "Psychology" | "Engineering";
+  | "Economics" | "Health" | "Physiology" | "Psychology" | "Engineering"
+  | "Education" | "Civic Education" | "Cyber Security" | "Government" | "Food & Nutrition";
 
 export interface Book {
   id: string;
@@ -11,6 +12,7 @@ export interface Book {
   category: Category;
   parts: number;
   cover: string;
+  price: number; // 0 for free
   content?: string;
   isPublished?: boolean;
 }
@@ -21,18 +23,25 @@ export const SURA_NAMES = [
 
 export const generate1000Books = (): Book[] => {
   const books: Book[] = [];
-  const categories: Category[] = ["Science", "ICT", "Hadiths", "Islam", "Christian", "History", "Laws", "Philosophy", "Literature", "Arts", "Biographies", "Economics", "Health", "Physiology", "Psychology", "Engineering"];
+  const categories: Category[] = [
+    "Science", "ICT", "Hadiths", "Islam", "Christian", "History", "Laws", 
+    "Philosophy", "Literature", "Arts", "Biographies", "Economics", 
+    "Health", "Physiology", "Psychology", "Engineering", "Education", 
+    "Civic Education", "Cyber Security", "Government", "Food & Nutrition"
+  ];
   const authors = ["Dr. Ahmed Lere", "Prof. Jane Smith", "Imam Malik", "Justice Roberts", "Scholar John", "Apostle Paul", "Historian Musa", "Barrister Bello", "Engr. David", "Dr. Sarah"];
+  const prices = [0, 150, 400];
   
   for (let i = 1; i <= 1000; i++) {
     const cat = categories[i % categories.length];
     books.push({
       id: `master-${i}`,
-      title: `${cat} Foundations Vol.${Math.floor(i/categories.length)+1}`,
+      title: `${cat} ${i % 2 === 0 ? 'Essentials' : 'Advanced Study'} Vol.${Math.floor(i/categories.length)+1}`,
       author: authors[i % authors.length],
       category: cat,
       parts: (i % 12) + 1,
       cover: `https://picsum.photos/seed/book${i}/200/300`,
+      price: prices[i % prices.length],
     });
   }
   return books;
