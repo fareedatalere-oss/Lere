@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, PlayCircle, Coins, Loader2, Sparkles, ShieldCheck } from "lucide-react";
+import { ArrowLeft, PlayCircle, Coins, Loader2, Sparkles, ShieldCheck, Radio } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 import { useToast } from "@/hooks/use-toast";
@@ -24,7 +24,7 @@ export default function WatchPage() {
     if (isPlaying && progress < 100) {
       interval = setInterval(() => {
         setProgress(prev => {
-          const next = prev + 1;
+          const next = prev + 2; // Faster 5-second progress
           if (next >= 100) {
             setIsPlaying(false);
             handleReward();
@@ -32,7 +32,7 @@ export default function WatchPage() {
           }
           return next;
         });
-      }, 100); // Realistic 10-second viewing period
+      }, 100); 
     }
     return () => clearInterval(interval);
   }, [isPlaying, progress]);
@@ -59,14 +59,14 @@ export default function WatchPage() {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      {/* Adsterra Popunder Script Integration */}
+      {/* Adsterra Popunder Script with User Token */}
       <Script 
         id="adsterra-popunder"
         strategy="afterInteractive"
-        src="//pl25746411.profitablecpmrate.com/6c/2a/52/6c2a529de4afa096c4eabefeb275dafe3a8941.js" 
+        src="//pl25746411.profitablecpmrate.com/2a/9e/ca/2a9eca2f7afad5f2e3c125ac2e9528bb.js" 
       />
 
-      <div className="max-w-md mx-auto space-y-6">
+      <div className="max-max-md mx-auto space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full bg-white shadow-sm">
             <ArrowLeft className="h-5 w-5" />
@@ -88,7 +88,7 @@ export default function WatchPage() {
               <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center p-8 space-y-4">
                 <div className="flex items-center gap-2 text-white">
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  <p className="text-xs font-bold uppercase tracking-widest">Streaming Ad Unit 28746411...</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest">Streaming Ad Unit 25746411...</p>
                 </div>
                 <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden max-w-[200px]">
                   <div 
@@ -96,7 +96,9 @@ export default function WatchPage() {
                     style={{ width: `${progress}%` }}
                   />
                 </div>
-                <p className="text-white/60 text-[10px] uppercase font-bold">Do not close this window</p>
+                <div className="flex items-center gap-1 text-white/60 text-[8px] uppercase font-bold">
+                  <Radio className="h-2 w-2 animate-pulse text-red-500" /> Secure Ad Stream Active
+                </div>
               </div>
             </div>
           ) : (
@@ -114,7 +116,7 @@ export default function WatchPage() {
 
         <div className="p-4 bg-primary/5 rounded-2xl border border-dashed border-primary/20 flex items-center gap-3">
           <ShieldCheck className="h-5 w-5 text-primary" />
-          <p className="text-[10px] font-bold uppercase text-primary leading-tight">Secured by Adsterra Network<br/><span className="text-muted-foreground opacity-60">Global Distribution Unit 28746411</span></p>
+          <p className="text-[10px] font-bold uppercase text-primary leading-tight">Secured by Adsterra Network<br/><span className="text-muted-foreground opacity-60 font-mono">Token: 2a9eca2f...8bb</span></p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">

@@ -201,7 +201,7 @@ export default function ProfilePage() {
               <span className="text-[10px] font-bold text-primary uppercase">OFF</span>
             </button>
 
-            <button className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left">
+            <button className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left" onClick={() => router.push("/actions/contact")}>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-slate-50 text-slate-500 rounded-xl flex items-center justify-center">
                   <Settings className="h-5 w-5" />
