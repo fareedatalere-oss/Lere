@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Smartphone, Loader2, Search, ChevronRight, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Smartphone, Loader2, Search, ChevronRight, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/context/UserContext";
 import { useFirebase } from "@/firebase";
 import { doc, updateDoc, increment, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { getDataPlansAction, buyDataAction } from "@/lib/datahouse-actions";
 
 export default function BuyDataPage() {
   const router = useRouter();
@@ -18,7 +19,7 @@ export default function BuyDataPage() {
   const { user } = useUser();
   const { firestore } = useFirebase();
 
-  const [step, setStep] = useState<"network" | "plans" | "confirm">("network");
+  const [step, setStep] = useState<"network" | "plans" | "details" | "confirm">("network");
   const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [plans, setPlans] = useState<any[]>([]);
@@ -37,19 +38,11 @@ export default function BuyDataPage() {
   const fetchPlans = async (net: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`https://datahouse.com.ng/api/data_plans?network=${net.toUpperCase()}`, {
-        headers: { 'Authorization': 'Token 80ca2a529de4afa096c4eabefeb275dafe3a8941' }
-      });
-      const data = await response.json();
+      const data = await getDataPlansAction(net);
       setPlans(Array.isArray(data) ? data : data.results || []);
-    } catch {
-      // Fallback only if API is down
-      setPlans([
-        { id: 1, name: "500MB SME", price: 150 },
-        { id: 2, name: "1GB SME", price: 280 },
-        { id: 3, name: "2GB SME", price: 560 },
-        { id: 5, name: "5GB SME", price: 1400 },
-      ]);
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "API Error", description: err.message });
+      setStep("network");
     } finally { setIsLoading(false); }
   };
 
@@ -77,24 +70,13 @@ export default function BuyDataPage() {
 
     setIsLoading(true);
     try {
-      // REAL Datahouse API Purchase
-      const response = await fetch('https://datahouse.com.ng/api/buy_data', {
-        method: 'POST',
-        headers: { 
-          'Authorization': 'Token 80ca2a529de4afa096c4eabefeb275dafe3a8941', 
-          'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify({ 
-          mobile_number: phoneNumber, 
-          plan: selectedPlan.id,
-          network: selectedNetwork?.toUpperCase(),
-          Ported_number: true
-        })
+      const result = await buyDataAction({
+        mobile_number: phoneNumber,
+        plan: selectedPlan.id,
+        network: selectedNetwork!.toUpperCase()
       });
 
-      const result = await response.json();
-
-      if (response.ok && (result.Status === "successful" || result.status === "successful")) {
+      if (result.Status === "successful" || result.status === "successful") {
         const userRef = doc(firestore, "users", user.id!);
         await updateDoc(userRef, { balance: increment(-total) });
         
@@ -112,7 +94,7 @@ export default function BuyDataPage() {
         toast({ title: "Purchase Successful", description: `${selectedPlan.name} active on ${phoneNumber}. Fee: ₦50.` });
         router.push("/dashboard");
       } else {
-        throw new Error(result.error || result.msg || "Datahouse Transaction Failed");
+        throw new Error(result.error || result.msg || "Transaction Failed");
       }
     } catch (err: any) {
       await addDoc(collection(firestore, "transactions"), {
@@ -123,11 +105,7 @@ export default function BuyDataPage() {
         error: err.message,
         createdAt: serverTimestamp()
       });
-      toast({ 
-        variant: "destructive", 
-        title: "Failed", 
-        description: err.message || "Could not process transaction via Datahouse." 
-      });
+      toast({ variant: "destructive", title: "Failed", description: err.message });
     } finally { setIsLoading(false); }
   };
 
@@ -135,7 +113,12 @@ export default function BuyDataPage() {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-md mx-auto space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => step === "network" ? router.back() : setStep(step === "confirm" ? "plans" : "network")} className="rounded-full bg-white shadow-sm">
+          <Button variant="ghost" size="icon" onClick={() => {
+            if (step === "plans") setStep("network");
+            else if (step === "details") setStep("plans");
+            else if (step === "confirm") setStep("details");
+            else router.back();
+          }} className="rounded-full bg-white shadow-sm">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-2xl font-bold">Buy Data</h1>
@@ -158,45 +141,68 @@ export default function BuyDataPage() {
               <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
               <Input placeholder="Search plans..." className="pl-10 h-12 rounded-2xl bg-white border-none shadow-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
-            <div className="grid gap-2 max-h-[60vh] overflow-y-auto pr-1">
-              {plans.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).map(p => (
-                <Card key={p.id} className="border-none shadow-sm cursor-pointer hover:bg-primary/5" onClick={() => { setSelectedPlan(p); setStep("confirm"); }}>
-                  <CardContent className="p-4 flex justify-between items-center">
-                    <div>
-                      <p className="font-bold text-sm">{p.name}</p>
-                      <p className="text-xs text-green-600 font-bold">₦{parseFloat(p.price).toLocaleString()}</p>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            {isLoading ? (
+              <div className="flex flex-col items-center py-20 gap-2"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="text-xs">Fetching plans...</p></div>
+            ) : (
+              <div className="grid gap-2 max-h-[60vh] overflow-y-auto pr-1">
+                {plans.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).map(p => (
+                  <Card key={p.id} className="border-none shadow-sm cursor-pointer hover:bg-primary/5" onClick={() => { setSelectedPlan(p); setStep("details"); }}>
+                    <CardContent className="p-4 flex justify-between items-center">
+                      <div>
+                        <p className="font-bold text-sm">{p.name}</p>
+                        <p className="text-xs text-green-600 font-bold">₦{parseFloat(p.price).toLocaleString()}</p>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {step === "confirm" && (
-          <Card className="border-none shadow-xl rounded-3xl">
+        {step === "details" && (
+          <Card className="border-none shadow-xl rounded-3xl bg-white">
             <CardContent className="pt-6">
-              <form onSubmit={handlePurchase} className="space-y-4">
+              <form onSubmit={(e) => { e.preventDefault(); setStep("confirm"); }} className="space-y-4">
                 <div className="p-4 bg-primary/5 rounded-2xl text-center">
-                  <p className="text-[10px] font-bold uppercase text-muted-foreground">Confirm Plan</p>
+                  <p className="text-[10px] font-bold uppercase text-muted-foreground">Selected Plan</p>
                   <p className="text-xl font-bold">{selectedPlan.name}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label>Phone Number</Label>
+                  <Label>Recipient Phone Number</Label>
                   <Input placeholder="080..." required value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="h-12 rounded-xl" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Transaction PIN</Label>
-                  <Input type="password" placeholder="****" maxLength={4} required value={pin} onChange={(e) => setPin(e.target.value)} className="h-12 rounded-xl" />
-                </div>
-                <div className="p-4 bg-slate-50 rounded-2xl border border-dashed text-xs space-y-1">
+                <Button type="submit" className="w-full h-14 bg-primary text-white font-bold rounded-2xl shadow-lg">
+                  Continue
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+
+        {step === "confirm" && (
+          <Card className="border-none shadow-xl rounded-3xl bg-white">
+            <CardContent className="pt-6">
+              <form onSubmit={handlePurchase} className="space-y-6">
+                <div className="p-6 bg-slate-50 rounded-2xl border border-dashed text-sm space-y-3">
+                  <div className="text-center pb-2 border-b">
+                    <p className="text-[10px] uppercase font-bold text-muted-foreground">Transaction Summary</p>
+                    <p className="text-xl font-bold">{selectedPlan.name}</p>
+                  </div>
+                  <div className="flex justify-between"><span>Phone:</span><span className="font-bold">{phoneNumber}</span></div>
                   <div className="flex justify-between"><span>Plan Price:</span><span className="font-bold">₦{parseFloat(selectedPlan.price).toLocaleString()}</span></div>
-                  <div className="flex justify-between"><span>Service Fee:</span><span className="font-bold">₦50.00</span></div>
-                  <div className="flex justify-between text-primary font-bold"><span>Total Debit:</span><span>₦{(parseFloat(selectedPlan.price) + 50).toLocaleString()}</span></div>
+                  <div className="flex justify-between text-red-500"><span>Service Fee:</span><span className="font-bold">₦50.00</span></div>
+                  <div className="flex justify-between text-primary font-bold text-lg pt-2 border-t"><span>Total Debit:</span><span>₦{(parseFloat(selectedPlan.price) + 50).toLocaleString()}</span></div>
                 </div>
+
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" /> Enter Transaction PIN</Label>
+                  <Input type="password" placeholder="****" maxLength={4} required value={pin} onChange={(e) => setPin(e.target.value)} className="h-14 rounded-xl text-center text-2xl tracking-[1em]" />
+                </div>
+
                 <Button type="submit" className="w-full h-14 bg-primary text-white font-bold rounded-2xl shadow-lg" disabled={isLoading}>
-                  {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Purchase Now"}
+                  {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Confirm & Pay Now"}
                 </Button>
               </form>
             </CardContent>
