@@ -48,7 +48,6 @@ export default function ProfilePage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch transactions - Filtered by user ID
   const txQuery = useMemoFirebase(() => {
     if (!firestore || !user?.id) return null;
     return query(
@@ -59,7 +58,6 @@ export default function ProfilePage() {
   
   const { data: transactions, isLoading: isTxLoading } = useCollection(txQuery);
 
-  // Sort transactions in memory to avoid index requirements for MVP
   const sortedTransactions = useMemo(() => {
     if (!transactions) return [];
     return [...transactions].sort((a, b) => {
@@ -124,7 +122,6 @@ export default function ProfilePage() {
           </Button>
         </div>
 
-        {/* Profile Header */}
         <div className="flex flex-col items-center space-y-3 pb-4">
           <div className="relative">
             <div className="w-28 h-28 rounded-full bg-primary/10 flex items-center justify-center border-4 border-white shadow-xl">
@@ -140,7 +137,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Account Info Cards */}
         <div className="grid grid-cols-2 gap-3">
           <Card className="border-none shadow-sm bg-primary/5">
             <CardContent className="p-4 flex flex-col items-center gap-1 text-center">
@@ -162,67 +158,77 @@ export default function ProfilePage() {
           </Card>
         </div>
 
-        {/* Feature Buttons List */}
         <div className="space-y-4">
           <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Settings & Security</h3>
-          <Card className="border-none shadow-sm overflow-hidden divide-y">
+          <Card className="border-none shadow-sm overflow-hidden divide-y rounded-2xl">
             
-            <button className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all" onClick={() => router.push("/actions/buy-number")}>
+            <button className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left" onClick={() => router.push("/actions/buy-number")}>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center">
                   <Smartphone className="h-5 w-5" />
                 </div>
-                <div className="text-left">
-                  <p className="text-sm font-semibold">Buy New Number</p>
+                <div>
+                  <p className="text-sm font-bold">Buy New Number</p>
                   <p className="text-[10px] text-muted-foreground">Get a dedicated global line</p>
                 </div>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </button>
 
-            <button className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all">
+            <button className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center">
                   <ScanFace className="h-5 w-5" />
                 </div>
-                <div className="text-left">
-                  <p className="text-sm font-semibold">Face Login</p>
+                <div>
+                  <p className="text-sm font-bold">Face Login</p>
                   <p className="text-[10px] text-muted-foreground">Secure biometric entry</p>
                 </div>
               </div>
               <span className="text-[10px] font-bold text-primary uppercase">OFF</span>
             </button>
 
-            <button className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all">
+            <button className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-teal-50 text-teal-500 rounded-xl flex items-center justify-center">
                   <MicVocal className="h-5 w-5" />
                 </div>
-                <div className="text-left">
-                  <p className="text-sm font-semibold">Voice Lock</p>
+                <div>
+                  <p className="text-sm font-bold">Voice Lock</p>
                   <p className="text-[10px] text-muted-foreground">Unlock with voice print</p>
                 </div>
               </div>
               <span className="text-[10px] font-bold text-primary uppercase">OFF</span>
             </button>
 
-            <button className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all" onClick={handleRingtoneClick} disabled={isUpdating}>
+            <button className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-pink-50 text-pink-500 rounded-xl flex items-center justify-center">
-                  {isUpdating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Music className="h-5 w-5" />}
+                <div className="w-10 h-10 bg-slate-50 text-slate-500 rounded-xl flex items-center justify-center">
+                  <Settings className="h-5 w-5" />
                 </div>
-                <div className="text-left">
-                  <p className="text-sm font-semibold">Choose Ringing Tone</p>
-                  <p className="text-[10px] text-muted-foreground">Set custom call audio</p>
+                <div>
+                  <p className="text-sm font-bold">General Settings</p>
+                  <p className="text-[10px] text-muted-foreground">App preferences</p>
                 </div>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </button>
 
+            <button className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left" onClick={handleRingtoneClick} disabled={isUpdating}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-pink-50 text-pink-500 rounded-xl flex items-center justify-center">
+                  {isUpdating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Music className="h-5 w-5" />}
+                </div>
+                <div>
+                  <p className="text-sm font-bold">Choose Ringing Tone</p>
+                  <p className="text-[10px] text-muted-foreground">Set custom call audio</p>
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </button>
             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="audio/*" />
           </Card>
 
-          {/* History Section */}
           <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1 pt-2 flex items-center gap-2">
             <History className="h-3 w-3" /> Transaction History
           </h3>
@@ -232,7 +238,7 @@ export default function ProfilePage() {
               <div className="text-center py-10"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /></div>
             ) : sortedTransactions.length > 0 ? (
               sortedTransactions.map(tx => (
-                <Card key={tx.id} className="border-none shadow-sm overflow-hidden bg-white">
+                <Card key={tx.id} className="border-none shadow-sm overflow-hidden bg-white rounded-2xl">
                   <div className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tx.status === "Success" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}>
@@ -260,15 +266,14 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {/* Logout and Delete */}
           <div className="pt-6 space-y-3">
-            <Button variant="outline" className="w-full h-12 rounded-xl text-primary font-bold border-primary/20" onClick={logout}>
+            <Button variant="outline" className="w-full h-14 rounded-2xl text-primary font-bold border-primary/20" onClick={logout}>
               <LogOut className="h-4 w-4 mr-2" /> Logout Session
             </Button>
 
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="ghost" className="w-full h-12 text-red-500 rounded-xl hover:bg-red-50 font-bold">
+                <Button variant="ghost" className="w-full h-14 text-red-500 rounded-2xl hover:bg-red-50 font-bold">
                   <ShieldAlert className="h-4 w-4 mr-2" /> Delete Account
                 </Button>
               </AlertDialogTrigger>
