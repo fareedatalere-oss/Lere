@@ -21,6 +21,7 @@ export default function BuyAirtimePage() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [pin, setPin] = useState("");
+  const [network, setNetwork] = useState("MTN");
   const [isLoading, setIsLoading] = useState(false);
 
   const handlePurchase = async (e: React.FormEvent) => {
@@ -33,7 +34,12 @@ export default function BuyAirtimePage() {
     }
 
     const val = parseFloat(amount);
-    const charge = val * 0.03;
+    if (isNaN(val) || val <= 0) {
+      toast({ variant: "destructive", title: "Invalid Amount", description: "Please enter a valid amount." });
+      return;
+    }
+
+    const charge = val * 0.03; // 3% charge
     const total = val + charge;
 
     if (user.balance < total) {
@@ -43,7 +49,7 @@ export default function BuyAirtimePage() {
 
     setIsLoading(true);
     try {
-      // Datahouse API Integration
+      // REAL Datahouse API Integration
       const response = await fetch('https://datahouse.com.ng/api/buy_airtime', {
         method: 'POST',
         headers: { 
@@ -51,13 +57,16 @@ export default function BuyAirtimePage() {
           'Content-Type': 'application/json' 
         },
         body: JSON.stringify({ 
-          phone: phoneNumber, 
+          mobile_number: phoneNumber, 
           amount: val,
-          network: "MTN" // Should be dynamic based on selection
+          network: network.toUpperCase(),
+          Ported_number: true
         })
       });
 
-      if (response.ok) {
+      const result = await response.json();
+
+      if (response.ok && (result.Status === "successful" || result.status === "successful")) {
         const userRef = doc(firestore, "users", user.id!);
         await updateDoc(userRef, { balance: increment(-total) });
         
@@ -75,17 +84,22 @@ export default function BuyAirtimePage() {
         toast({ title: "Purchase Successful", description: `₦${val} sent to ${phoneNumber}. Fee: ₦${charge.toFixed(2)}.` });
         router.push("/dashboard");
       } else {
-        throw new Error("API failed");
+        throw new Error(result.error || result.msg || "API Transaction Failed");
       }
-    } catch (err) {
+    } catch (err: any) {
       await addDoc(collection(firestore, "transactions"), {
         userId: user.id,
         type: "Airtime Purchase",
         amount: val,
         status: "Failed",
+        error: err.message,
         createdAt: serverTimestamp()
       });
-      toast({ variant: "destructive", title: "Purchase Failed", description: "Request could not be processed at this time." });
+      toast({ 
+        variant: "destructive", 
+        title: "Purchase Failed", 
+        description: err.message || "Request could not be processed by Datahouse." 
+      });
     } finally {
       setIsLoading(false);
     }
@@ -106,11 +120,16 @@ export default function BuyAirtimePage() {
             <form onSubmit={handlePurchase} className="space-y-4">
               <div className="space-y-2">
                 <Label>Network Provider</Label>
-                <select className="w-full h-12 px-3 rounded-xl border bg-background" required>
-                  <option value="mtn">MTN</option>
-                  <option value="airtel">Airtel</option>
-                  <option value="glo">Glo</option>
-                  <option value="9mobile">9mobile</option>
+                <select 
+                  className="w-full h-12 px-3 rounded-xl border bg-background" 
+                  value={network}
+                  onChange={(e) => setNetwork(e.target.value)}
+                  required
+                >
+                  <option value="MTN">MTN</option>
+                  <option value="AIRTEL">Airtel</option>
+                  <option value="GLO">Glo</option>
+                  <option value="9MOBILE">9mobile</option>
                 </select>
               </div>
               <div className="space-y-2">

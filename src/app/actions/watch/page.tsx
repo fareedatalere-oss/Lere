@@ -1,13 +1,13 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, PlayCircle, Coins, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, PlayCircle, Coins, Loader2, Sparkles, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 import { useToast } from "@/hooks/use-toast";
+import Script from "next/script";
 
 export default function WatchPage() {
   const router = useRouter();
@@ -52,6 +52,13 @@ export default function WatchPage() {
 
   return (
     <div className="min-h-screen bg-background p-4">
+      {/* Adsterra Popunder Script Integration */}
+      <Script 
+        id="adsterra-popunder"
+        strategy="afterInteractive"
+        src="//pl25746411.profitablecpmrate.com/6c/2a/52/6c2a529de4afa096c4eabefeb275dafe3a8941.js" 
+      />
+
       <div className="max-w-md mx-auto space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full bg-white shadow-sm">
@@ -64,7 +71,7 @@ export default function WatchPage() {
           {isPlaying ? (
             <div className="w-full h-full flex flex-col items-center justify-center p-8 space-y-4">
               <Loader2 className="h-12 w-12 text-primary animate-spin" />
-              <p className="text-white text-sm font-bold">Streaming Reward Content...</p>
+              <p className="text-white text-sm font-bold">Streaming Ad Unit 28746411...</p>
               <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
                 <div 
                   className="bg-primary h-full transition-all duration-300" 
@@ -81,6 +88,11 @@ export default function WatchPage() {
             </div>
           )}
         </Card>
+
+        <div className="p-4 bg-primary/5 rounded-2xl border border-dashed border-primary/20 flex items-center gap-3">
+          <ShieldCheck className="h-5 w-5 text-primary" />
+          <p className="text-[10px] font-bold uppercase text-primary">Secured by Adsterra Network (Unit 28746411)</p>
+        </div>
 
         <div className="grid grid-cols-2 gap-4">
           <Card className="border-none shadow-sm p-4 bg-white">
@@ -108,7 +120,7 @@ export default function WatchPage() {
                   <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
                     <PlayCircle className="h-4 w-4 text-slate-400" />
                   </div>
-                  <span className="text-sm font-medium">Video Content #{i + 1}</span>
+                  <span className="text-sm font-medium">Partner Video #{i + 1}</span>
                 </div>
                 <span className="text-xs font-bold text-green-600">₦5.50</span>
               </div>

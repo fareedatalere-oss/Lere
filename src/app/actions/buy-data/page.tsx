@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Smartphone, Loader2, Search, ChevronRight } from "lucide-react";
+import { ArrowLeft, Smartphone, Loader2, Search, ChevronRight, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/context/UserContext";
@@ -37,12 +37,13 @@ export default function BuyDataPage() {
   const fetchPlans = async (net: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`https://datahouse.com.ng/api/data_plans?network=${net}`, {
+      const response = await fetch(`https://datahouse.com.ng/api/data_plans?network=${net.toUpperCase()}`, {
         headers: { 'Authorization': 'Token 80ca2a529de4afa096c4eabefeb275dafe3a8941' }
       });
       const data = await response.json();
       setPlans(Array.isArray(data) ? data : data.results || []);
     } catch {
+      // Fallback only if API is down
       setPlans([
         { id: 1, name: "500MB SME", price: 150 },
         { id: 2, name: "1GB SME", price: 280 },
@@ -67,33 +68,66 @@ export default function BuyDataPage() {
       return;
     }
 
-    const total = selectedPlan.price + 50;
+    const total = parseFloat(selectedPlan.price) + 50; // ₦50 charge
 
     if (user.balance < total) {
-      toast({ variant: "destructive", title: "Insufficient Funds", description: `Total is ₦${total.toLocaleString()}.` });
+      toast({ variant: "destructive", title: "Insufficient Funds", description: `Total is ₦${total.toLocaleString()}. Balance: ₦${user.balance.toLocaleString()}` });
       return;
     }
 
     setIsLoading(true);
     try {
-      const userRef = doc(firestore, "users", user.id!);
-      await updateDoc(userRef, { balance: increment(-total) });
-      
+      // REAL Datahouse API Purchase
+      const response = await fetch('https://datahouse.com.ng/api/buy_data', {
+        method: 'POST',
+        headers: { 
+          'Authorization': 'Token 80ca2a529de4afa096c4eabefeb275dafe3a8941', 
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ 
+          mobile_number: phoneNumber, 
+          plan: selectedPlan.id,
+          network: selectedNetwork?.toUpperCase(),
+          Ported_number: true
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok && (result.Status === "successful" || result.status === "successful")) {
+        const userRef = doc(firestore, "users", user.id!);
+        await updateDoc(userRef, { balance: increment(-total) });
+        
+        await addDoc(collection(firestore, "transactions"), {
+          userId: user.id,
+          type: "Data Purchase",
+          amount: selectedPlan.price,
+          charge: 50,
+          total: total,
+          recipient: phoneNumber,
+          status: "Success",
+          createdAt: serverTimestamp()
+        });
+
+        toast({ title: "Purchase Successful", description: `${selectedPlan.name} active on ${phoneNumber}. Fee: ₦50.` });
+        router.push("/dashboard");
+      } else {
+        throw new Error(result.error || result.msg || "Datahouse Transaction Failed");
+      }
+    } catch (err: any) {
       await addDoc(collection(firestore, "transactions"), {
         userId: user.id,
         type: "Data Purchase",
         amount: selectedPlan.price,
-        charge: 50,
-        total: total,
-        recipient: phoneNumber,
-        status: "Success",
+        status: "Failed",
+        error: err.message,
         createdAt: serverTimestamp()
       });
-
-      toast({ title: "Purchase Successful", description: `${selectedPlan.name} active on ${phoneNumber}.` });
-      router.push("/dashboard");
-    } catch {
-      toast({ variant: "destructive", title: "Failed", description: "Could not process transaction." });
+      toast({ 
+        variant: "destructive", 
+        title: "Failed", 
+        description: err.message || "Could not process transaction via Datahouse." 
+      });
     } finally { setIsLoading(false); }
   };
 
@@ -130,7 +164,7 @@ export default function BuyDataPage() {
                   <CardContent className="p-4 flex justify-between items-center">
                     <div>
                       <p className="font-bold text-sm">{p.name}</p>
-                      <p className="text-xs text-green-600 font-bold">₦{p.price.toLocaleString()}</p>
+                      <p className="text-xs text-green-600 font-bold">₦{parseFloat(p.price).toLocaleString()}</p>
                     </div>
                     <ChevronRight className="h-5 w-5 text-muted-foreground" />
                   </CardContent>
@@ -157,9 +191,9 @@ export default function BuyDataPage() {
                   <Input type="password" placeholder="****" maxLength={4} required value={pin} onChange={(e) => setPin(e.target.value)} className="h-12 rounded-xl" />
                 </div>
                 <div className="p-4 bg-slate-50 rounded-2xl border border-dashed text-xs space-y-1">
-                  <div className="flex justify-between"><span>Plan Price:</span><span className="font-bold">₦{selectedPlan.price.toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span>Plan Price:</span><span className="font-bold">₦{parseFloat(selectedPlan.price).toLocaleString()}</span></div>
                   <div className="flex justify-between"><span>Service Fee:</span><span className="font-bold">₦50.00</span></div>
-                  <div className="flex justify-between text-primary font-bold"><span>Total Debit:</span><span>₦{(selectedPlan.price + 50).toLocaleString()}</span></div>
+                  <div className="flex justify-between text-primary font-bold"><span>Total Debit:</span><span>₦{(parseFloat(selectedPlan.price) + 50).toLocaleString()}</span></div>
                 </div>
                 <Button type="submit" className="w-full h-14 bg-primary text-white font-bold rounded-2xl shadow-lg" disabled={isLoading}>
                   {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Purchase Now"}
