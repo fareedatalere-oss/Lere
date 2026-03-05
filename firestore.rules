@@ -1,13 +1,33 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    /**
-     * OPEN SECURITY RULES FOR DEVELOPMENT
-     * Note: This allows anyone to read and write to your database.
-     * In a production app, you should restrict this to authenticated users.
-     */
+    // General rule for broad access during development
     match /{document=**} {
       allow read, write: if true;
     }
+
+    // Explicitly define critical paths for better deployment reliability
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+    
+    match /transactions/{transactionId} {
+      allow read, write: if true;
+    }
+    
+    match /published_books/{bookId} {
+      allow read, write: if true;
+    }
+    
+    match /calls/{callId} {
+      allow read, write: if true;
+    }
+    
+    // Sub-collections for WebRTC signaling
+    match /calls/{callId}/offer/{docId} { allow read, write: if true; }
+    match /calls/{callId}/answer/{docId} { allow read, write: if true; }
+    match /calls/{callId}/callerCandidates/{docId} { allow read, write: if true; }
+    match /calls/{callId}/receiverCandidates/{docId} { allow read, write: if true; }
   }
 }

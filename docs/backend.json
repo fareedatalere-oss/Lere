@@ -15,7 +15,8 @@
         "rewardBalance": { "type": "number" },
         "pin": { "type": "string" },
         "myReferralCode": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "customRingtoneUrl": { "type": "string" }
       },
       "required": ["id", "username", "phoneNumber", "accountNumber", "balance", "pin", "createdAt"]
     },
@@ -35,6 +36,35 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["title", "author", "category", "publisherId", "createdAt"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "type": "object",
+      "description": "A financial transaction record.",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string" },
+        "amount": { "type": "number" },
+        "charge": { "type": "number" },
+        "total": { "type": "number" },
+        "recipient": { "type": "string" },
+        "status": { "type": "string" },
+        "error": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Call": {
+      "title": "Call",
+      "type": "object",
+      "description": "A voice or video call record.",
+      "properties": {
+        "callerId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "status": { "type": "string" },
+        "callType": { "type": "string" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -56,6 +86,22 @@
           "entityName": "PublishedBook",
           "schema": { "$ref": "#/backend/entities/PublishedBook" },
           "description": "Global collection of user-published educational books."
+        }
+      },
+      {
+        "path": "/transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": { "$ref": "#/backend/entities/Transaction" },
+          "description": "History of financial transactions."
+        }
+      },
+      {
+        "path": "/calls/{callId}",
+        "definition": {
+          "entityName": "Call",
+          "schema": { "$ref": "#/backend/entities/Call" },
+          "description": "Active and past call records."
         }
       }
     ]

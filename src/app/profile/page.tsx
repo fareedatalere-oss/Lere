@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useUser } from "@/context/UserContext";
@@ -18,7 +19,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useFirebase, useMemoFirebase, useCollection } from "@/firebase";
 import { doc, updateDoc, collection, query, where, orderBy, deleteDoc } from "firebase/firestore";
 
@@ -30,16 +31,26 @@ export default function ProfilePage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch transactions
+  // Fetch transactions - Simplified query to avoid composite index requirement
   const txQuery = useMemoFirebase(() => {
     if (!firestore || !user?.id) return null;
     return query(
       collection(firestore, "transactions"),
-      where("userId", "==", user.id),
-      orderBy("createdAt", "desc")
+      where("userId", "==", user.id)
     );
   }, [firestore, user]);
+  
   const { data: transactions, isLoading: isTxLoading } = useCollection(txQuery);
+
+  // Sort transactions in memory to avoid "Missing or insufficient permissions" (index error)
+  const sortedTransactions = useMemo(() => {
+    if (!transactions) return [];
+    return [...transactions].sort((a, b) => {
+      const timeA = a.createdAt?.seconds || 0;
+      const timeB = b.createdAt?.seconds || 0;
+      return timeB - timeA;
+    });
+  }, [transactions]);
 
   if (!user) return null;
 
@@ -122,8 +133,8 @@ export default function ProfilePage() {
           <div className="space-y-3">
             {isTxLoading ? (
               <div className="text-center py-10"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /></div>
-            ) : transactions && transactions.length > 0 ? (
-              transactions.map(tx => (
+            ) : sortedTransactions.length > 0 ? (
+              sortedTransactions.map(tx => (
                 <Card key={tx.id} className="border-none shadow-sm overflow-hidden bg-white">
                   <div className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -132,7 +143,7 @@ export default function ProfilePage() {
                       </div>
                       <div>
                         <p className="text-sm font-bold">{tx.type}</p>
-                        <p className="text-[10px] text-muted-foreground">{new Date(tx.createdAt?.seconds * 1000).toLocaleString()}</p>
+                        <p className="text-[10px] text-muted-foreground">{tx.createdAt?.seconds ? new Date(tx.createdAt.seconds * 1000).toLocaleString() : 'Just now'}</p>
                       </div>
                     </div>
                     <div className="text-right flex flex-col items-end gap-1">

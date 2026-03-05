@@ -80,24 +80,25 @@ export default function Dashboard() {
   useEffect(() => {
     if (!firestore || !user?.phoneNumber || !firebaseUser) return;
 
+    // Simplified query for incoming calls to avoid composite index requirement
     const callsRef = collection(firestore, "calls");
     const q = query(
       callsRef, 
-      where("receiverId", "==", user.phoneNumber), 
-      where("status", "==", "ringing")
+      where("receiverId", "==", user.phoneNumber)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
-        if (change.type === "added") {
-          const callData = { id: change.doc.id, ...change.doc.data() };
+        const data = change.doc.data();
+        // Only trigger for active "ringing" calls
+        if (change.type === "added" && data.status === "ringing") {
+          const callData = { id: change.doc.id, ...data };
           setIncomingCall(callData);
           
           if (ringtoneRef.current) {
-            // Use custom ringtone if available, else default
             const customRingtone = (user as any).customRingtoneUrl;
             ringtoneRef.current.src = customRingtone || DEFAULT_RINGTONE;
-            ringtoneRef.current.play().catch(e => console.log("Audio play blocked"));
+            ringtoneRef.current.play().catch(() => console.log("Audio play blocked"));
           }
 
           if (Notification.permission === "granted") {
