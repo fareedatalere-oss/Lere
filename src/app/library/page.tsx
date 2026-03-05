@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { 
   ArrowLeft, 
   Search, 
-  Library, 
+  Library as LibraryIcon, 
   BookOpen, 
   FlaskConical, 
   Cpu, 
@@ -42,45 +42,7 @@ import { useToast } from "@/hooks/use-toast";
 import { generateBookContent } from "@/ai/flows/generate-book-content";
 import { useFirebase, useMemoFirebase, useCollection } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
-
-type Category = 
-  | "All" | "Science" | "ICT" | "Qur'an" | "Hadiths" | "Islam" | "Christian" 
-  | "History" | "Laws" | "Philosophy" | "Literature" | "Arts" | "Biographies"
-  | "Economics" | "Health" | "Physiology" | "Psychology" | "Engineering";
-
-interface Book {
-  id: string;
-  title: string;
-  author: string;
-  category: Category;
-  parts: number;
-  cover: string;
-  content?: string;
-  isPublished?: boolean;
-}
-
-const SURA_NAMES = ["Al-Fatihah", "Al-Baqarah", "Al-Imran", "An-Nisa", "Al-Ma'idah", "Al-An'am", "Al-A'raf", "Al-Anfal", "At-Tawbah", "Yunus", "Hud", "Yusuf", "Ar-Ra'd", "Ibrahim", "Al-Hijr", "An-Nahl", "Al-Isra", "Al-Kahf", "Maryam", "Ta-Ha", "Al-Anbiya", "Al-Hajj", "Al-Mu'minun", "An-Nur", "Al-Furqan", "Ash-Shu'ara", "An-Naml", "Al-Qasas", "Al-'Ankabut", "Ar-Rum", "Luqman", "As-Sajdah", "Al-Ahzab", "Saba", "Fatir", "Ya-Sin", "As-Saffat", "Sad", "Az-Zumar", "Ghafir", "Fussilat", "Ash-Shura", "Az-Zukhruf", "Ad-Dukhan", "Al-Jathiyah", "Al-Ahqaf", "Muhammad", "Al-Fath", "Al-Hujurat", "Qaf", "Adh-Dhariyat", "At-Tur", "An-Najm", "Al-Qamar", "Ar-Rahman", "Al-Waqi'ah", "Al-Hadid", "Al-Mujadilah", "Al-Hashr", "Al-Mumtahanah", "As-Saff", "Al-Jumu'ah", "Al-Munafiqun", "At-Taghabun", "At-Talaq", "At-Tahrim", "Al-Mulk", "Al-Qalam", "Al-Haqqah", "Al-Ma'arij", "Nuh", "Al-Jinn", "Al-Muzzammil", "Al-Muddaththir", "Al-Qiyamah", "Al-Insan", "Al-Mursalat", "An-Naba", "An-Nazi'at", "'Abasa", "At-Takwir", "Al-Infitar", "Al-Mutaffifin", "Al-Inshiqaq", "Al-Buruj", "At-Tariq", "Al-A'la", "Al-Ghashiyah", "Al-Fajr", "Al-Balad", "Ash-Shams", "Al-Layl", "Ad-Duha", "Ash-Sharh", "At-Tin", "Al-'Alaq", "Al-Qadr", "Al-Bayyinah", "Az-Zalzalah", "Al-'Adiyat", "Al-Qari'ah", "At-Takathur", "Al-'Asr", "Al-Humazah", "Al-Fil", "Quraysh", "Al-Ma'un", "Al-Kawthar", "Al-Kafirun", "An-Nasr", "Al-Masad", "Al-Ikhlas", "Al-Falaq", "An-Nas"];
-
-const generate1000Books = (): Book[] => {
-  const books: Book[] = [];
-  const categories: Category[] = ["Science", "ICT", "Hadiths", "Islam", "Christian", "History", "Laws", "Philosophy", "Literature", "Arts", "Biographies", "Economics", "Health", "Physiology", "Psychology", "Engineering"];
-  const authors = ["Dr. Ahmed Lere", "Prof. Jane Smith", "Imam Malik", "Justice Roberts", "Scholar John", "Apostle Paul", "Historian Musa", "Barrister Bello", "Engr. David", "Dr. Sarah"];
-  
-  for (let i = 1; i <= 1000; i++) {
-    const cat = categories[i % categories.length];
-    books.push({
-      id: `master-${i}`,
-      title: `${cat} Foundations Vol.${Math.floor(i/categories.length)+1}`,
-      author: authors[i % authors.length],
-      category: cat,
-      parts: (i % 12) + 1,
-      cover: `https://picsum.photos/seed/book${i}/200/300`,
-    });
-  }
-  return books;
-};
-
-const MASTER_LIBRARY = generate1000Books();
+import { Category, Book, SURA_NAMES, MASTER_LIBRARY } from "./library-data";
 
 export default function LibraryPage() {
   const router = useRouter();
@@ -137,6 +99,7 @@ export default function LibraryPage() {
   const fetchSurahContent = async () => {
     if (!selectedSurah) return;
     setIsReaderLoading(true);
+    setQuranContent(null);
     try {
       const editionMap: Record<string, string> = {
         "English Subtitles": "en.sahih",
@@ -153,7 +116,7 @@ export default function LibraryPage() {
       const translationData = await translationRes.json();
       setQuranContent({ arabic: arabicData.data, translation: translationData.data });
     } catch (err) {
-      toast({ variant: "destructive", title: "API Error", description: "Failed to load Surah." });
+      toast({ variant: "destructive", title: "API Error", description: "Failed to load Surah content." });
     } finally { setIsReaderLoading(false); }
   };
 
@@ -167,9 +130,15 @@ export default function LibraryPage() {
         author: selectedBook.author,
         category: selectedBook.category,
       });
-      setAiContent(content);
+      
+      if (content.startsWith("ERROR:")) {
+        toast({ variant: "destructive", title: "Configuration Required", description: content });
+        setAiContent(content);
+      } else {
+        setAiContent(content);
+      }
     } catch (err) {
-      toast({ variant: "destructive", title: "AI Error", description: "Could not generate book content." });
+      toast({ variant: "destructive", title: "AI Error", description: "Could not generate book content. Please try again." });
     } finally { setIsReaderLoading(false); }
   };
 
@@ -178,7 +147,7 @@ export default function LibraryPage() {
     { name: "ICT", icon: Cpu, color: "text-indigo-500 bg-indigo-50" },
     { name: "Qur'an", icon: BookMarked, color: "text-emerald-600 bg-emerald-50" },
     { name: "Hadiths", icon: Heart, color: "text-emerald-500 bg-emerald-50" },
-    { name: "Islam", icon: Library, color: "text-teal-500 bg-teal-50" },
+    { name: "Islam", icon: LibraryIcon, color: "text-teal-500 bg-teal-50" },
     { name: "Christian", icon: Cross, color: "text-purple-500 bg-purple-50" },
     { name: "History", icon: HistoryIcon, color: "text-orange-500 bg-orange-50" },
     { name: "Laws", icon: Gavel, color: "text-slate-600 bg-slate-100" },
@@ -295,14 +264,17 @@ export default function LibraryPage() {
             <Input placeholder="Search surah..." className="pl-10 h-12 bg-white rounded-xl border-none" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
           </div>
           <div className="grid gap-2 max-h-[70vh] overflow-y-auto pr-1">
-            {SURA_NAMES.filter(s => s.toLowerCase().includes(searchQuery.toLowerCase())).map((name, idx) => (
-              <Card key={idx} className="border-none shadow-sm rounded-2xl cursor-pointer bg-white" onClick={() => { setSelectedSurah({name, index: SURA_NAMES.indexOf(name)}); setView("reader"); }}>
-                <CardContent className="p-4 flex items-center justify-between">
-                  <span className="font-bold text-sm">{idx + 1}. {name}</span>
-                  <Button size="sm" variant="ghost" className="text-emerald-600 font-bold text-xs uppercase">READ</Button>
-                </CardContent>
-              </Card>
-            ))}
+            {SURA_NAMES.map((name, idx) => {
+              if (searchQuery && !name.toLowerCase().includes(searchQuery.toLowerCase())) return null;
+              return (
+                <Card key={idx} className="border-none shadow-sm rounded-2xl cursor-pointer bg-white" onClick={() => { setSelectedSurah({name, index: idx}); setView("reader"); }}>
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <span className="font-bold text-sm">{idx + 1}. {name}</span>
+                    <Button size="sm" variant="ghost" className="text-emerald-600 font-bold text-xs uppercase">READ</Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -383,6 +355,9 @@ export default function LibraryPage() {
               </div>
             </Card>
           ))}
+          {filteredBooks.length > visibleCount && (
+            <Button variant="ghost" className="col-span-full" onClick={() => setVisibleCount(v => v + 50)}>Load More Knowledge</Button>
+          )}
         </div>
       </div>
     </div>

@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -29,6 +30,13 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+  },
+  // Increase server action timeout for AI generation
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb',
+      allowedOrigins: ['localhost:9002'],
+    },
   },
 };
 
