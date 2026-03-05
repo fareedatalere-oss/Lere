@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useUser } from "@/context/UserContext";
@@ -8,22 +7,20 @@ import {
   ArrowLeft, 
   User, 
   Settings, 
-  Mic, 
-  ScanFace, 
-  Lock, 
-  KeyRound, 
-  Hash, 
-  ChevronRight,
-  ShieldCheck,
-  Smartphone,
-  Music,
-  Loader2
+  Trash2, 
+  Music, 
+  Loader2, 
+  Clock,
+  History,
+  CheckCircle2,
+  XCircle,
+  ChevronRight
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useRef } from "react";
-import { useFirebase } from "@/firebase";
-import { doc, updateDoc } from "firebase/firestore";
+import { useFirebase, useMemoFirebase, useCollection } from "@/firebase";
+import { doc, updateDoc, collection, query, where, orderBy, deleteDoc } from "firebase/firestore";
 
 export default function ProfilePage() {
   const { user } = useUser();
@@ -33,7 +30,28 @@ export default function ProfilePage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch transactions
+  const txQuery = useMemoFirebase(() => {
+    if (!firestore || !user?.id) return null;
+    return query(
+      collection(firestore, "transactions"),
+      where("userId", "==", user.id),
+      orderBy("createdAt", "desc")
+    );
+  }, [firestore, user]);
+  const { data: transactions, isLoading: isTxLoading } = useCollection(txQuery);
+
   if (!user) return null;
+
+  const handleDeleteTx = async (id: string) => {
+    if (!firestore) return;
+    try {
+      await deleteDoc(doc(firestore, "transactions", id));
+      toast({ title: "Record Deleted", description: "Transaction has been removed from your history." });
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "Could not delete record." });
+    }
+  };
 
   const handleRingtoneClick = () => {
     fileInputRef.current?.click();
@@ -41,38 +59,22 @@ export default function ProfilePage() {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('audio/')) {
-      toast({ variant: "destructive", title: "Invalid File", description: "Please select an audio file." });
-      return;
-    }
-
+    if (!file || !file.type.startsWith('audio/')) return;
     setIsUpdating(true);
     try {
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64Audio = reader.result as string;
         if (user.id && firestore) {
-          const userRef = doc(firestore, "users", user.id);
-          await updateDoc(userRef, { customRingtoneUrl: base64Audio });
-          toast({ title: "Ringtone Updated", description: "Your custom ringtone has been saved." });
+          await updateDoc(doc(firestore, "users", user.id), { customRingtoneUrl: base64Audio });
+          toast({ title: "Ringtone Updated", description: "New ringtone saved." });
         }
         setIsUpdating(false);
       };
       reader.readAsDataURL(file);
-    } catch (error) {
-      console.error(error);
-      toast({ variant: "destructive", title: "Upload Failed", description: "Could not save ringtone." });
+    } catch {
       setIsUpdating(false);
     }
-  };
-
-  const handleAction = (action: string) => {
-    toast({
-      title: action,
-      description: "This feature is coming soon in the next update.",
-    });
   };
 
   return (
@@ -86,126 +88,70 @@ export default function ProfilePage() {
         </div>
 
         <div className="flex flex-col items-center space-y-3 pb-4">
-          <div className="relative">
-            <div className="w-28 h-28 rounded-full bg-primary/10 flex items-center justify-center border-4 border-white shadow-xl overflow-hidden">
-              <User className="h-16 w-16 text-primary" />
-            </div>
-            <div className="absolute bottom-0 right-0 p-2 bg-primary rounded-full border-2 border-white shadow-lg">
-              <Settings className="h-4 w-4 text-white" />
-            </div>
+          <div className="w-28 h-28 rounded-full bg-primary/10 flex items-center justify-center border-4 border-white shadow-xl">
+            <User className="h-16 w-16 text-primary" />
           </div>
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-foreground">{user.username}</h2>
+            <h2 className="text-2xl font-bold">{user.username}</h2>
             <p className="text-muted-foreground font-mono text-sm">{user.phoneNumber}</p>
           </div>
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground pl-1">Security & Ringtone</h3>
-          
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">Settings</h3>
           <Card className="border-none shadow-sm overflow-hidden">
-            <CardContent className="p-0 divide-y">
-              <button 
-                className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-colors"
-                onClick={handleRingtoneClick}
-                disabled={isUpdating}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-pink-50 text-pink-500 rounded-xl flex items-center justify-center">
-                    {isUpdating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Music className="h-5 w-5" />}
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-semibold">Change Ringtone</p>
-                    <p className="text-[10px] text-muted-foreground">Choose sound from your device</p>
-                  </div>
+            <button className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all" onClick={handleRingtoneClick} disabled={isUpdating}>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-pink-50 text-pink-500 rounded-xl flex items-center justify-center">
+                  {isUpdating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Music className="h-5 w-5" />}
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </button>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
-                className="hidden" 
-                accept="audio/*"
-              />
-
-              <button 
-                className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-colors"
-                onClick={() => handleAction("Add Voice Lock")}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center">
-                    <Mic className="h-5 w-5" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-semibold">Add Voice Lock</p>
-                    <p className="text-[10px] text-muted-foreground">Secure calls with your voice</p>
-                  </div>
+                <div className="text-left">
+                  <p className="text-sm font-semibold">Custom Ringtone</p>
+                  <p className="text-[10px] text-muted-foreground">Choose from device</p>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </button>
-
-              <button 
-                className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-colors"
-                onClick={() => handleAction("Add Face Lock")}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center">
-                    <ScanFace className="h-5 w-5" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-semibold">Add Face Lock</p>
-                    <p className="text-[10px] text-muted-foreground">Unlock with facial recognition</p>
-                  </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </button>
-            </CardContent>
-          </Card>
-
-          <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground pl-1 pt-2">Account Management</h3>
-
-          <Card className="border-none shadow-sm overflow-hidden">
-            <CardContent className="p-0 divide-y">
-              <button 
-                className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-colors"
-                onClick={() => router.push("/actions/buy-number")}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-50 text-green-500 rounded-xl flex items-center justify-center">
-                    <Smartphone className="h-5 w-5" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-semibold">Buy New Number</p>
-                    <p className="text-[10px] text-muted-foreground">Add secondary line to your account</p>
-                  </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </button>
-
-              <div className="p-4 flex items-center justify-between bg-primary/5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white text-primary rounded-xl flex items-center justify-center border shadow-sm">
-                    <ShieldCheck className="h-5 w-5" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-sm font-semibold">Lere Verified</p>
-                    <p className="text-[10px] text-muted-foreground">Your account is fully secured</p>
-                  </div>
-                </div>
-                <div className="h-2 w-2 rounded-full bg-green-500" />
               </div>
-            </CardContent>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </button>
+            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="audio/*" />
           </Card>
-        </div>
 
-        <Button 
-          variant="outline" 
-          className="w-full h-12 rounded-2xl border-2 border-red-50 text-red-500 hover:bg-red-50 hover:text-red-600 font-bold"
-          onClick={() => toast({ title: "Account Deletion", description: "Please contact support to delete account." })}
-        >
-          Delete Account
-        </Button>
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1 pt-2 flex items-center gap-2">
+            <History className="h-3 w-3" /> Transaction Records
+          </h3>
+          
+          <div className="space-y-3">
+            {isTxLoading ? (
+              <div className="text-center py-10"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /></div>
+            ) : transactions && transactions.length > 0 ? (
+              transactions.map(tx => (
+                <Card key={tx.id} className="border-none shadow-sm overflow-hidden bg-white">
+                  <div className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tx.status === "Success" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}>
+                        {tx.status === "Success" ? <CheckCircle2 className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold">{tx.type}</p>
+                        <p className="text-[10px] text-muted-foreground">{new Date(tx.createdAt?.seconds * 1000).toLocaleString()}</p>
+                      </div>
+                    </div>
+                    <div className="text-right flex flex-col items-end gap-1">
+                      <p className="text-sm font-bold">₦{tx.amount?.toLocaleString()}</p>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDeleteTx(tx.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))
+            ) : (
+              <Card className="border-none shadow-sm bg-slate-50 p-10 text-center">
+                <Clock className="h-8 w-8 mx-auto text-slate-300 mb-2" />
+                <p className="text-xs text-muted-foreground">No transactions recorded yet.</p>
+              </Card>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

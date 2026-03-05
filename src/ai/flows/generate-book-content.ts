@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview A Genkit flow that generates educational content for books in the library.
@@ -45,14 +44,14 @@ const generateBookContentFlow = ai.defineFlow(
     outputSchema: GenerateBookContentOutputSchema,
   },
   async (input) => {
-    // Safety check for API key
     if (!process.env.GOOGLE_GENAI_API_KEY && !process.env.GEMINI_API_KEY) {
-      return "ERROR: Missing Gemini API Key. Please add your API key to the environment variables to enable AI-powered book content generation.";
+      return "ERROR: Missing Gemini API Key. Please add your API key to the environment variables.";
     }
 
     try {
       const {output} = await prompt(input);
-      return output || "Content generation completed but returned no text.";
+      if (!output) return "Content generation completed but returned empty text.";
+      return output;
     } catch (error: any) {
       console.error("Genkit Flow Error:", error);
       return `Failed to generate content: ${error.message || "Unknown AI error"}`;

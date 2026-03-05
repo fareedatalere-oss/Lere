@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -17,7 +16,6 @@ import {
   BookMarked,
   History as HistoryIcon,
   Gavel,
-  CheckCircle2,
   ChevronDown,
   Loader2,
   Globe,
@@ -28,7 +26,6 @@ import {
   Stethoscope,
   Brain,
   Wrench,
-  Sparkles,
   Dna,
   BookCopy,
   Languages,
@@ -101,6 +98,14 @@ export default function LibraryPage() {
     setIsReaderLoading(true);
     setQuranContent(null);
     try {
+      const cacheKey = `quran_${selectedSurah.index}_${quranType}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        setQuranContent(JSON.parse(cached));
+        setIsReaderLoading(false);
+        return;
+      }
+
       const editionMap: Record<string, string> = {
         "English Subtitles": "en.sahih",
         "Hausa Subtitles": "ha.gumi",
@@ -114,7 +119,9 @@ export default function LibraryPage() {
       ]);
       const arabicData = await arabicRes.json();
       const translationData = await translationRes.json();
-      setQuranContent({ arabic: arabicData.data, translation: translationData.data });
+      const result = { arabic: arabicData.data, translation: translationData.data };
+      setQuranContent(result);
+      localStorage.setItem(cacheKey, JSON.stringify(result));
     } catch (err) {
       toast({ variant: "destructive", title: "API Error", description: "Failed to load Surah content." });
     } finally { setIsReaderLoading(false); }
@@ -125,6 +132,14 @@ export default function LibraryPage() {
     setIsReaderLoading(true);
     setAiContent(null);
     try {
+      const cacheKey = `book_content_${selectedBook.id}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        setAiContent(cached);
+        setIsReaderLoading(false);
+        return;
+      }
+
       const content = await generateBookContent({
         title: selectedBook.title,
         author: selectedBook.author,
@@ -132,13 +147,14 @@ export default function LibraryPage() {
       });
       
       if (content.startsWith("ERROR:")) {
-        toast({ variant: "destructive", title: "Configuration Required", description: content });
+        toast({ variant: "destructive", title: "Config Error", description: content });
         setAiContent(content);
       } else {
         setAiContent(content);
+        localStorage.setItem(cacheKey, content);
       }
     } catch (err) {
-      toast({ variant: "destructive", title: "AI Error", description: "Could not generate book content. Please try again." });
+      toast({ variant: "destructive", title: "AI Error", description: "Could not generate content." });
     } finally { setIsReaderLoading(false); }
   };
 
@@ -302,7 +318,7 @@ export default function LibraryPage() {
           {isReaderLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Loader2 className="h-10 w-10 animate-spin text-emerald-600" />
-              <p className="text-sm font-bold text-emerald-600">Processing Real-time Request...</p>
+              <p className="text-sm font-bold text-emerald-600">Syncing with Knowledge Base...</p>
             </div>
           ) : isQuran && quranContent ? (
             <div className="space-y-12 py-8">
@@ -315,7 +331,7 @@ export default function LibraryPage() {
             </div>
           ) : (
             <div className="prose prose-slate mt-8 text-lg leading-relaxed text-slate-700 whitespace-pre-wrap">
-              {aiContent || "Generating content..."}
+              {aiContent || "Loading content..."}
             </div>
           )}
         </div>
