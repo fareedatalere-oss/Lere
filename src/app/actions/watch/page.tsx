@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, PlayCircle, Coins, Loader2, Sparkles, ShieldCheck, Radio } from "lucide-react";
+import { ArrowLeft, PlayCircle, Coins, Loader2, Sparkles, ShieldCheck, Radio, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 import { useToast } from "@/hooks/use-toast";
@@ -19,12 +19,15 @@ export default function WatchPage() {
   const [isRewarded, setIsRewarded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // User's Smart Link ID
+  const SMART_LINK_ID = "3193409";
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isPlaying && progress < 100) {
       interval = setInterval(() => {
         setProgress(prev => {
-          const next = prev + 1; // Smooth 10-second progress
+          const next = prev + 2; // Accelerated for better UX
           if (next >= 100) {
             setIsPlaying(false);
             handleReward();
@@ -43,7 +46,7 @@ export default function WatchPage() {
     await addReward(5.50);
     toast({
       title: "Reward Earned!",
-      description: "₦5.50 has been added to your reward balance.",
+      description: "₦5.50 added to your rewards. Open Smart Link to earn more.",
     });
   };
 
@@ -57,15 +60,12 @@ export default function WatchPage() {
     }
   };
 
+  const openSmartLink = () => {
+    window.open(`https://smrturl.co/o/${SMART_LINK_ID}/direct`, '_blank');
+  };
+
   return (
     <div className="min-h-screen bg-background p-4">
-      {/* Adsterra Script with User Token */}
-      <Script 
-        id="adsterra-ads"
-        strategy="afterInteractive"
-        src={`//pl25746411.profitablecpmrate.com/2a/9e/ca/2a9eca2f7afad5f2e3c125ac2e9528bb.js`} 
-      />
-
       <div className="max-w-md mx-auto space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full bg-white shadow-sm">
@@ -85,10 +85,10 @@ export default function WatchPage() {
                 muted
                 playsInline
               />
-              <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center p-8 space-y-4">
+              <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center p-8 space-y-4 text-center">
                 <div className="flex items-center gap-2 text-white">
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  <p className="text-[10px] font-bold uppercase tracking-widest">Streaming Ad Unit...</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest">Loading Premium Content...</p>
                 </div>
                 <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden max-w-[200px]">
                   <div 
@@ -96,9 +96,7 @@ export default function WatchPage() {
                     style={{ width: `${progress}%` }}
                   />
                 </div>
-                <div className="flex items-center gap-1 text-white/60 text-[8px] uppercase font-bold">
-                  <Radio className="h-2 w-2 animate-pulse text-red-500" /> Secure Ad Stream Active
-                </div>
+                <p className="text-white/60 text-[8px] uppercase font-bold">Smart Link Unit {SMART_LINK_ID} Active</p>
               </div>
             </div>
           ) : (
@@ -107,16 +105,25 @@ export default function WatchPage() {
                 <PlayCircle className="h-10 w-10" />
               </Button>
               <div className="text-center">
-                <p className="text-white font-bold">Ad Ready</p>
-                <p className="text-white/60 text-[10px] uppercase tracking-tighter">Earn ₦5.50 after viewing</p>
+                <p className="text-white font-bold">Ad Unit Ready</p>
+                <p className="text-white/60 text-[10px] uppercase tracking-tighter">Earn ₦5.50 per view</p>
               </div>
             </div>
           )}
         </Card>
 
+        <Button 
+          variant="outline" 
+          className="w-full h-16 rounded-2xl bg-white border-2 border-primary/20 text-primary font-bold shadow-md flex items-center justify-center gap-3 hover:bg-primary/5"
+          onClick={openSmartLink}
+        >
+          <ExternalLink className="h-5 w-5" />
+          Open Premium Smart Link
+        </Button>
+
         <div className="p-4 bg-primary/5 rounded-2xl border border-dashed border-primary/20 flex items-center gap-3">
           <ShieldCheck className="h-5 w-5 text-primary" />
-          <p className="text-[10px] font-bold uppercase text-primary leading-tight">Secured by Adsterra Network<br/><span className="text-muted-foreground opacity-60 font-mono">Token: 2a9eca2f...8bb</span></p>
+          <p className="text-[10px] font-bold uppercase text-primary leading-tight">Secured by Adsterra Network<br/><span className="text-muted-foreground opacity-60 font-mono">Link: smart-link-{SMART_LINK_ID}</span></p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -134,31 +141,6 @@ export default function WatchPage() {
               <p className="text-lg font-bold">₦{user?.rewardBalance?.toFixed(2) || "0.00"}</p>
             </div>
           </Card>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between px-1">
-            <h3 className="font-bold text-lg">Next Rewards</h3>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase">Refreshing in 2h</span>
-          </div>
-          <div className="space-y-3">
-            {[2, 3, 4].map(i => (
-              <div key={i} className="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border border-transparent hover:border-primary/20 transition-all cursor-not-allowed opacity-60">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
-                    <PlayCircle className="h-5 w-5 text-slate-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold">Partner Ad #{i}</p>
-                    <p className="text-[10px] text-muted-foreground">Premium Reward</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-bold text-green-600">₦5.50</span>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>

@@ -3,11 +3,11 @@
 
 /**
  * @fileOverview Server actions for Datahouse API to bypass CORS restrictions.
+ * Updated with user-provided Token and Endpoints.
  */
 
-const DATAHOUSE_TOKEN = 'Token 80ca2a529de4afa096c4eabefeb275dafe3a8941';
-// Corrected Base URL to avoid 404s
-const BASE_URL = 'https://datahouse.com.ng/api';
+const DATAHOUSE_TOKEN = 'Token 66f2e5c39ac8640f13cd888f161385b12f7e5e92';
+const BASE_URL = 'https://www.datahouse.com.ng/api';
 
 async function datahouseFetch(endpoint: string, options: RequestInit = {}) {
   try {
@@ -33,9 +33,9 @@ async function datahouseFetch(endpoint: string, options: RequestInit = {}) {
   }
 }
 
-// Updated endpoints to match standard VTU API patterns
 export async function buyAirtimeAction(data: { mobile_number: string, amount: number, network: string }) {
-  return datahouseFetch('/airtime/', {
+  // Using user-provided structure for /api/topup/
+  return datahouseFetch('/topup/', {
     method: 'POST',
     body: JSON.stringify({
       network: data.network === '9MOBILE' ? 4 : data.network === 'GLO' ? 3 : data.network === 'AIRTEL' ? 2 : 1,
@@ -48,12 +48,13 @@ export async function buyAirtimeAction(data: { mobile_number: string, amount: nu
 }
 
 export async function buyDataAction(data: { mobile_number: string, plan: number, network: string }) {
+  // Using user-provided structure for /api/data/
   return datahouseFetch('/data/', {
     method: 'POST',
     body: JSON.stringify({
       network: data.network === '9MOBILE' ? 4 : data.network === 'GLO' ? 3 : data.network === 'AIRTEL' ? 2 : 1,
-      plan: data.plan,
       mobile_number: data.mobile_number,
+      plan: data.plan,
       Ported_number: true
     }),
   });
