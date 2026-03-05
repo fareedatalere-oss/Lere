@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -24,7 +23,7 @@ export default function WatchPage() {
     if (isPlaying && progress < 100) {
       interval = setInterval(() => {
         setProgress(prev => {
-          const next = prev + 2; // Faster 5-second progress
+          const next = prev + 1; // Smooth 10-second progress
           if (next >= 100) {
             setIsPlaying(false);
             handleReward();
@@ -59,14 +58,14 @@ export default function WatchPage() {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      {/* Adsterra Popunder Script with User Token */}
+      {/* Adsterra Script with User Token */}
       <Script 
-        id="adsterra-popunder"
+        id="adsterra-ads"
         strategy="afterInteractive"
-        src="//pl25746411.profitablecpmrate.com/2a/9e/ca/2a9eca2f7afad5f2e3c125ac2e9528bb.js" 
+        src={`//pl25746411.profitablecpmrate.com/2a/9e/ca/2a9eca2f7afad5f2e3c125ac2e9528bb.js`} 
       />
 
-      <div className="max-max-md mx-auto space-y-6">
+      <div className="max-w-md mx-auto space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full bg-white shadow-sm">
             <ArrowLeft className="h-5 w-5" />
@@ -88,7 +87,7 @@ export default function WatchPage() {
               <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center p-8 space-y-4">
                 <div className="flex items-center gap-2 text-white">
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  <p className="text-[10px] font-bold uppercase tracking-widest">Streaming Ad Unit 25746411...</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest">Streaming Ad Unit...</p>
                 </div>
                 <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden max-w-[200px]">
                   <div 
