@@ -37,6 +37,7 @@ import {
 import { useRouter } from "next/navigation";
 import { CallInterface } from "@/components/CallInterface";
 import { Dialer } from "@/components/Dialer";
+import { VideoChatInterface } from "@/components/VideoChatInterface";
 import { IceBreaker } from "@/components/IceBreaker";
 import { 
   AlertDialog, 
@@ -67,6 +68,8 @@ export default function Dashboard() {
     incomingCallId?: string;
   }>({ isOpen: false, type: "voice" });
 
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatReceiver, setChatReceiver] = useState("");
   const [isDialerOpen, setIsDialerOpen] = useState(false);
   const [incomingCall, setIncomingCall] = useState<any>(null);
   const ringtoneRef = useRef<HTMLAudioElement | null>(null);
@@ -80,7 +83,6 @@ export default function Dashboard() {
   useEffect(() => {
     if (!firestore || !user?.phoneNumber || !firebaseUser) return;
 
-    // Simplified query for incoming calls to avoid composite index requirement
     const callsRef = collection(firestore, "calls");
     const q = query(
       callsRef, 
@@ -90,7 +92,6 @@ export default function Dashboard() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
         const data = change.doc.data();
-        // Only trigger for active "ringing" calls
         if (change.type === "added" && data.status === "ringing") {
           const callData = { id: change.doc.id, ...data };
           setIncomingCall(callData);
@@ -142,8 +143,13 @@ export default function Dashboard() {
 
   if (!user) return null;
 
-  const handleStartCall = (type: "voice" | "video", number: string) => {
-    setIsCalling({ isOpen: true, type, receiverId: number });
+  const handleStartDialAction = (type: "voice" | "video" | "chat", number: string) => {
+    if (type === "chat") {
+      setChatReceiver(number);
+      setIsChatOpen(true);
+    } else {
+      setIsCalling({ isOpen: true, type, receiverId: number });
+    }
     setIsDialerOpen(false);
   };
 
@@ -317,7 +323,13 @@ export default function Dashboard() {
       <Dialer 
         isOpen={isDialerOpen} 
         onClose={() => setIsDialerOpen(false)} 
-        onStartCall={handleStartCall}
+        onStartCall={handleStartDialAction}
+      />
+
+      <VideoChatInterface 
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        receiverId={chatReceiver}
       />
 
       <AlertDialog open={!!incomingCall}>
