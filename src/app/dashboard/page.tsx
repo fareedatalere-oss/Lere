@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -63,13 +62,11 @@ export default function Dashboard() {
 
   const [isCalling, setIsCalling] = useState<{ 
     isOpen: boolean; 
-    type: "voice" | "video";
+    type: "voice" | "video" | "chat";
     receiverId?: string;
     incomingCallId?: string;
   }>({ isOpen: false, type: "voice" });
 
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatReceiver, setChatReceiver] = useState("");
   const [isDialerOpen, setIsDialerOpen] = useState(false);
   const [incomingCall, setIncomingCall] = useState<any>(null);
   const ringtoneRef = useRef<HTMLAudioElement | null>(null);
@@ -103,7 +100,7 @@ export default function Dashboard() {
           }
 
           if (Notification.permission === "granted") {
-            new Notification("Incoming Call", {
+            new Notification(`Incoming ${callData.callType === 'chat' ? 'Video Chat' : 'Call'}`, {
               body: `${callData.callerId} is calling you!`,
             });
           }
@@ -144,12 +141,7 @@ export default function Dashboard() {
   if (!user) return null;
 
   const handleStartDialAction = (type: "voice" | "video" | "chat", number: string) => {
-    if (type === "chat") {
-      setChatReceiver(number);
-      setIsChatOpen(true);
-    } else {
-      setIsCalling({ isOpen: true, type, receiverId: number });
-    }
+    setIsCalling({ isOpen: true, type, receiverId: number });
     setIsDialerOpen(false);
   };
 
@@ -326,11 +318,22 @@ export default function Dashboard() {
         onStartCall={handleStartDialAction}
       />
 
-      <VideoChatInterface 
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        receiverId={chatReceiver}
-      />
+      {isCalling.type === 'chat' ? (
+        <VideoChatInterface 
+          isOpen={isCalling.isOpen}
+          onClose={() => setIsCalling({ ...isCalling, isOpen: false, incomingCallId: undefined })}
+          receiverId={isCalling.receiverId || "Conference"}
+          incomingCallId={isCalling.incomingCallId}
+        />
+      ) : (
+        <CallInterface 
+          isOpen={isCalling.isOpen} 
+          type={isCalling.type as any} 
+          receiverId={isCalling.receiverId}
+          incomingCallId={isCalling.incomingCallId}
+          onClose={() => setIsCalling({ ...isCalling, isOpen: false, incomingCallId: undefined })} 
+        />
+      )}
 
       <AlertDialog open={!!incomingCall}>
         <AlertDialogContent className="bg-white rounded-3xl p-8 flex flex-col items-center">
@@ -338,7 +341,7 @@ export default function Dashboard() {
             <BellRing className="h-10 w-10 text-primary" />
           </div>
           <AlertDialogHeader className="text-center">
-            <AlertDialogTitle className="text-2xl font-bold">Incoming {incomingCall?.callType} Call</AlertDialogTitle>
+            <AlertDialogTitle className="text-2xl font-bold">Incoming {incomingCall?.callType === 'chat' ? 'Video Chat' : incomingCall?.callType} Call</AlertDialogTitle>
             <AlertDialogDescription>{incomingCall?.callerId} is calling...</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex gap-4 w-full mt-8">
@@ -347,14 +350,6 @@ export default function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <CallInterface 
-        isOpen={isCalling.isOpen} 
-        type={isCalling.type} 
-        receiverId={isCalling.receiverId}
-        incomingCallId={isCalling.incomingCallId}
-        onClose={() => setIsCalling({ ...isCalling, isOpen: false, incomingCallId: undefined })} 
-      />
     </div>
   );
 }

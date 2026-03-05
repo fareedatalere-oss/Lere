@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -15,7 +14,6 @@ import {
   Video, 
   Delete, 
   History, 
-  Loader2,
   Clock,
   Trash2,
   MessageSquare,
@@ -64,6 +62,7 @@ export function Dialer({ isOpen, onClose, onStartCall }: DialerProps) {
     if (!number) return;
     saveToRecent(number);
     onStartCall(type, number);
+    setNumber("");
   };
 
   const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"];
@@ -76,6 +75,9 @@ export function Dialer({ isOpen, onClose, onStartCall }: DialerProps) {
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <History className="h-5 w-5" /> Dial Center
             </DialogTitle>
+            <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-white/20 text-white">
+              <X className="h-5 w-5" />
+            </Button>
           </div>
         </DialogHeader>
 
@@ -102,15 +104,15 @@ export function Dialer({ isOpen, onClose, onStartCall }: DialerProps) {
 
             <div className="space-y-2">
               <p className="text-[10px] font-bold uppercase text-muted-foreground flex items-center gap-1">
-                <Clock className="h-3 w-3" /> Recent Activity (Browser)
+                <Clock className="h-3 w-3" /> Recent History (Saved locally)
               </p>
-              <div className="flex flex-col gap-2 max-h-32 overflow-y-auto pr-1">
+              <div className="flex flex-col gap-2 max-h-40 overflow-y-auto pr-1">
                 {recentCalls.length > 0 ? (
                   recentCalls.map((num, i) => (
-                    <div key={i} className="flex items-center justify-between p-2 bg-accent/10 rounded-xl">
+                    <div key={i} className="flex items-center justify-between p-2 bg-slate-50 border rounded-xl group hover:border-primary/50 transition-all">
                       <Button 
                         variant="ghost" 
-                        className="flex-1 justify-start font-mono font-bold h-8"
+                        className="flex-1 justify-start font-mono font-bold h-8 text-primary"
                         onClick={() => setNumber(num)}
                       >
                         {num}
@@ -118,7 +120,7 @@ export function Dialer({ isOpen, onClose, onStartCall }: DialerProps) {
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-8 w-8 text-red-500 hover:bg-red-50"
+                        className="h-8 w-8 text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={() => deleteRecent(num)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -126,7 +128,9 @@ export function Dialer({ isOpen, onClose, onStartCall }: DialerProps) {
                     </div>
                   ))
                 ) : (
-                  <p className="text-xs text-muted-foreground italic pl-1">No history found</p>
+                  <div className="py-4 text-center">
+                    <p className="text-xs text-muted-foreground italic">No recent history</p>
+                  </div>
                 )}
               </div>
             </div>
@@ -165,7 +169,7 @@ export function Dialer({ isOpen, onClose, onStartCall }: DialerProps) {
               onClick={() => handleAction("chat")}
               disabled={!number}
             >
-              <MessageSquare className="h-5 w-5 mb-1" /> CHAT
+              <MessageSquare className="h-5 w-5 mb-1" /> VIDEO CHAT
             </Button>
           </div>
         </div>
