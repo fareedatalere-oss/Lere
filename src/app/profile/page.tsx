@@ -217,35 +217,61 @@ export default function ProfilePage() {
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </button>
 
-            <div className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left">
-              <div className="flex items-center gap-3" onClick={() => handleBiometricClick('face')}>
+            <button 
+              className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left group"
+              onClick={() => handleBiometricClick('face')}
+            >
+              <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center">
                   <ScanFace className="h-5 w-5" />
                 </div>
-                <div className="cursor-pointer">
+                <div>
                   <p className="text-sm font-bold">Face Login</p>
                   <p className="text-[10px] text-muted-foreground">{user.faceLoginActive ? 'Biometric enabled' : 'Secure biometric entry'}</p>
                 </div>
               </div>
-              {user.faceLoginActive && (
-                <Button variant="ghost" size="sm" onClick={() => handleDisableBiometric('face')} className="text-red-500 h-8 px-2"><Trash2 className="h-4 w-4" /></Button>
-              )}
-            </div>
+              <div className="flex items-center gap-2">
+                {user.faceLoginActive && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={(e) => { e.stopPropagation(); handleDisableBiometric('face'); }} 
+                    className="text-red-500 h-8 px-2 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </button>
 
-            <div className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left">
-              <div className="flex items-center gap-3" onClick={() => handleBiometricClick('voice')}>
+            <button 
+              className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left group"
+              onClick={() => handleBiometricClick('voice')}
+            >
+              <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-teal-50 text-teal-500 rounded-xl flex items-center justify-center">
                   <MicVocal className="h-5 w-5" />
                 </div>
-                <div className="cursor-pointer">
+                <div>
                   <p className="text-sm font-bold">Voice Lock</p>
                   <p className="text-[10px] text-muted-foreground">{user.voiceLoginActive ? 'Voice print active' : 'Unlock with voice print'}</p>
                 </div>
               </div>
-              {user.voiceLoginActive && (
-                <Button variant="ghost" size="sm" onClick={() => handleDisableBiometric('voice')} className="text-red-500 h-8 px-2"><Trash2 className="h-4 w-4" /></Button>
-              )}
-            </div>
+              <div className="flex items-center gap-2">
+                {user.voiceLoginActive && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={(e) => { e.stopPropagation(); handleDisableBiometric('voice'); }} 
+                    className="text-red-500 h-8 px-2 hover:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </button>
 
             <button className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left" onClick={() => router.push("/profile/settings")}>
               <div className="flex items-center gap-3">
