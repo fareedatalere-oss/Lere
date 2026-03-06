@@ -1,9 +1,9 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Users, 
@@ -130,7 +130,7 @@ export default function AdminDashboard() {
               <p className="text-[10px] font-bold text-muted-foreground uppercase">Active Tx</p>
               <h2 className="text-2xl font-bold text-emerald-600">{allTx?.length || 0}</h2>
             </CardContent>
-          </Card>
+          </div>
         </div>
 
         {/* Navigation */}
