@@ -54,7 +54,8 @@ export default function ProfilePage() {
     if (!firestore || !user?.id) return null;
     return query(
       collection(firestore, "transactions"),
-      where("userId", "==", user.id)
+      where("userId", "==", user.id),
+      where("deletedByUser", "==", false)
     );
   }, [firestore, user]);
   
@@ -74,10 +75,11 @@ export default function ProfilePage() {
   const handleDeleteTx = async (id: string) => {
     if (!firestore) return;
     try {
-      await deleteDoc(doc(firestore, "transactions", id));
-      toast({ title: "Record Deleted", description: "Transaction record removed." });
+      // Soft delete for user history, Admin still sees it
+      await updateDoc(doc(firestore, "transactions", id), { deletedByUser: true });
+      toast({ title: "Record Deleted", description: "Hiding transaction from your history." });
     } catch {
-      toast({ variant: "destructive", title: "Error", description: "Could not delete record." });
+      toast({ variant: "destructive", title: "Error", description: "Could not remove record." });
     }
   };
 
@@ -197,7 +199,7 @@ export default function ProfilePage() {
                 <div className="w-10 h-10 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center">
                   <ScanFace className="h-5 w-5" />
                 </div>
-                <div onClick={() => !user.faceLoginActive && !user.voiceLoginActive && router.push("/profile/face-setup")}>
+                <div onClick={() => !user.faceLoginActive && !user.voiceLoginActive && router.push("/profile/face-setup")} className="cursor-pointer">
                   <p className="text-sm font-bold">Face Login</p>
                   <p className="text-[10px] text-muted-foreground">{user.faceLoginActive ? 'Biometric enabled' : 'Secure biometric entry'}</p>
                 </div>
@@ -219,7 +221,7 @@ export default function ProfilePage() {
                 <div className="w-10 h-10 bg-teal-50 text-teal-500 rounded-xl flex items-center justify-center">
                   <MicVocal className="h-5 w-5" />
                 </div>
-                <div onClick={() => !user.voiceLoginActive && !user.faceLoginActive && router.push("/profile/voice-setup")}>
+                <div onClick={() => !user.voiceLoginActive && !user.faceLoginActive && router.push("/profile/voice-setup")} className="cursor-pointer">
                   <p className="text-sm font-bold">Voice Lock</p>
                   <p className="text-[10px] text-muted-foreground">{user.voiceLoginActive ? 'Voice print active' : 'Unlock with voice print'}</p>
                 </div>

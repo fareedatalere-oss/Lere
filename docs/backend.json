@@ -16,7 +16,11 @@
         "pin": { "type": "string" },
         "myReferralCode": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
-        "customRingtoneUrl": { "type": "string" }
+        "customRingtoneUrl": { "type": "string" },
+        "faceLoginActive": { "type": "boolean" },
+        "voiceLoginActive": { "type": "boolean" },
+        "isBlocked": { "type": "boolean" },
+        "isAdmin": { "type": "boolean" }
       },
       "required": ["id", "username", "phoneNumber", "accountNumber", "balance", "pin", "createdAt"]
     },
@@ -50,7 +54,8 @@
         "recipient": { "type": "string" },
         "status": { "type": "string" },
         "error": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "deletedByUser": { "type": "boolean" }
       }
     },
     "Call": {

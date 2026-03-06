@@ -9,6 +9,8 @@ import {
   query, 
   where, 
   onSnapshot, 
+  doc,
+  getDoc
 } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -36,7 +38,9 @@ import {
   Lock,
   Mic,
   ScanFace,
-  Delete
+  Delete,
+  ShieldAlert,
+  PowerOff
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CallInterface } from "@/components/CallInterface";
@@ -107,6 +111,9 @@ export default function Dashboard() {
     if (!isUserLoading && !user) {
       router.push("/login");
     }
+    if (user?.isBlocked) {
+      setIsLocked(true); // Effectively disable usage if blocked
+    }
   }, [user, isUserLoading, router]);
 
   useEffect(() => {
@@ -168,13 +175,12 @@ export default function Dashboard() {
 
   const handleBiometricUnlock = async () => {
     setIsBiometricScanning(true);
-    // Simulate biometric check
     setTimeout(() => {
       setIsBiometricScanning(false);
       setIsLocked(false);
       setPinInput("");
       resetLockTimer();
-      toast({ title: "Unlocked", description: `Access granted via ${user?.faceLoginActive ? 'Face' : 'Voice'} recognition.` });
+      toast({ title: "Unlocked", description: `Access granted.` });
     }, 2000);
   };
 
@@ -188,14 +194,25 @@ export default function Dashboard() {
 
   if (!user) return null;
 
+  if (user.isBlocked) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-6">
+        <ShieldAlert className="h-20 w-20 text-red-500 mb-6" />
+        <h2 className="text-2xl font-bold text-slate-900">Account Blocked</h2>
+        <p className="text-center text-slate-500 mt-2 max-w-xs">Your account has been restricted by the administrator. Contact support for more information.</p>
+        <Button variant="outline" className="mt-10 rounded-xl px-10" onClick={logout}>Return to Login</Button>
+      </div>
+    );
+  }
+
   if (isLocked) {
     return (
       <div className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-6 backdrop-blur-xl">
         <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mb-8 shadow-inner">
           <Lock className="h-10 w-10 text-primary" />
         </div>
-        <h2 className="text-2xl font-bold mb-2">Account Locked</h2>
-        <p className="text-muted-foreground text-sm mb-8 text-center max-w-xs">Enter your transaction PIN to continue your session.</p>
+        <h2 className="text-2xl font-bold mb-2">Secure Lock</h2>
+        <p className="text-muted-foreground text-sm mb-8 text-center max-w-xs">Enter PIN or use biometrics to continue.</p>
         
         <div className="w-full max-w-xs space-y-6">
           <div className="relative">
@@ -209,7 +226,7 @@ export default function Dashboard() {
             />
             {pinInput.length === 4 && (
               <Button 
-                className="w-full h-14 mt-4 rounded-2xl bg-primary text-white font-bold text-lg"
+                className="w-full h-14 mt-4 rounded-2xl bg-primary text-white font-bold text-lg shadow-lg"
                 onClick={handleUnlock}
               >
                 Unlock Dashboard
@@ -219,22 +236,31 @@ export default function Dashboard() {
 
           {(user.faceLoginActive || user.voiceLoginActive) && (
             <div className="flex flex-col items-center gap-4 pt-4">
-              <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Or use biometrics</p>
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="h-20 w-20 rounded-full border-2 border-primary/20 bg-white shadow-lg"
-                onClick={handleBiometricUnlock}
-                disabled={isBiometricScanning}
-              >
-                {isBiometricScanning ? (
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                ) : user.faceLoginActive ? (
-                  <ScanFace className="h-8 w-8 text-primary" />
-                ) : (
-                  <Mic className="h-8 w-8 text-primary" />
+              <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">Biometric Entry</p>
+              <div className="flex gap-4">
+                {user.faceLoginActive && (
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    className="h-20 w-20 rounded-full border-2 border-primary/20 bg-white shadow-lg"
+                    onClick={handleBiometricUnlock}
+                    disabled={isBiometricScanning}
+                  >
+                    {isBiometricScanning ? <Loader2 className="h-8 w-8 animate-spin text-primary" /> : <ScanFace className="h-8 w-8 text-primary" />}
+                  </Button>
                 )}
-              </Button>
+                {user.voiceLoginActive && (
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    className="h-20 w-20 rounded-full border-2 border-teal-100 bg-white shadow-lg"
+                    onClick={handleBiometricUnlock}
+                    disabled={isBiometricScanning}
+                  >
+                    {isBiometricScanning ? <Loader2 className="h-8 w-8 animate-spin text-teal-600" /> : <Mic className="h-8 w-8 text-teal-600" />}
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -260,7 +286,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-8">
+    <div className="min-h-screen bg-background pb-32 md:pb-8">
       <audio 
         ref={ringtoneRef} 
         loop 
@@ -407,9 +433,16 @@ export default function Dashboard() {
           </Button>
         </div>
 
-        <div className="pt-6">
+        <div className="pt-10 flex flex-col gap-4">
+          <Button 
+            className="w-full h-16 bg-slate-900 hover:bg-slate-800 text-white rounded-3xl shadow-xl font-bold text-lg flex items-center justify-center gap-3 border-4 border-white"
+            onClick={() => setIsLocked(true)}
+          >
+            <PowerOff className="h-6 w-6 text-primary" /> LOCK SECURE SESSION
+          </Button>
+          
           <Button variant="ghost" className="w-full text-red-500 rounded-xl hover:bg-red-50" onClick={logout}>
-            <LogOut className="h-4 w-4 mr-2" /> Logout
+            <LogOut className="h-4 w-4 mr-2" /> Logout Device
           </Button>
         </div>
       </main>
