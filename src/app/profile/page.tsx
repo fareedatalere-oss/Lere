@@ -23,7 +23,8 @@ import {
   LogOut,
   ShieldAlert,
   Mic,
-  ShieldCheck
+  ShieldCheck,
+  Mail
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
@@ -72,13 +73,21 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
+  const handleReferralClick = () => {
+    toast({
+      title: "Approval Required",
+      description: "Please send a request to fahadabdussalam100@gmail.com to get approval for using referral codes.",
+      variant: "default",
+    });
+  };
+
   const handleDeleteTx = async (id: string) => {
     if (!firestore) return;
     try {
       await updateDoc(doc(firestore, "transactions", id), { deletedByUser: true });
       toast({ title: "Record Deleted", description: "Hiding transaction from your history." });
     } catch {
-      toast({ variant: "destructive", title: "Error", description: "Could not remove record." });
+      toast({ variant: "destructive", title: "Error" });
     }
   };
 
@@ -96,14 +105,14 @@ export default function ProfilePage() {
         const base64Audio = reader.result as string;
         if (user.id && firestore) {
           await updateDoc(doc(firestore, "users", user.id), { customRingtoneUrl: base64Audio });
-          toast({ title: "Ringtone Updated", description: "Your custom ringing tone is now active." });
+          toast({ title: "Ringtone Updated" });
         }
         setIsUpdating(false);
       };
       reader.readAsDataURL(file);
     } catch {
       setIsUpdating(false);
-      toast({ variant: "destructive", title: "Error", description: "Failed to upload audio." });
+      toast({ variant: "destructive", title: "Error" });
     }
   };
 
@@ -120,7 +129,7 @@ export default function ProfilePage() {
         ? { faceLoginActive: false, faceData: null } 
         : { voiceLoginActive: false, voiceData: null };
       await updateDoc(doc(firestore, "users", user.id), updates);
-      toast({ title: "Biometric Disabled", description: `${type === 'face' ? 'Face' : 'Voice'} login has been removed.` });
+      toast({ title: "Biometric Disabled" });
     } finally {
       setIsUpdating(false);
     }
@@ -129,13 +138,13 @@ export default function ProfilePage() {
   const handleBiometricClick = (type: 'face' | 'voice') => {
     if (type === 'face') {
       if (user.voiceLoginActive) {
-        toast({ variant: "destructive", title: "Action Blocked", description: "Please disable Voice Lock before enabling Face Login." });
+        toast({ variant: "destructive", title: "Action Blocked", description: "Disable Voice Lock first." });
         return;
       }
       if (!user.faceLoginActive) router.push("/profile/face-setup");
     } else {
       if (user.faceLoginActive) {
-        toast({ variant: "destructive", title: "Action Blocked", description: "Please disable Face Login before enabling Voice Lock." });
+        toast({ variant: "destructive", title: "Action Blocked", description: "Disable Face Login first." });
         return;
       }
       if (!user.voiceLoginActive) router.push("/profile/voice-setup");
@@ -144,7 +153,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-background p-4 pb-20">
-      <div className="max-w-md mx-auto space-y-6">
+      <div className="max-md mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <Button variant="ghost" size="icon" onClick={() => router.push("/dashboard")} className="rounded-full bg-white shadow-sm">
             <ArrowLeft className="h-5 w-5" />
@@ -171,21 +180,21 @@ export default function ProfilePage() {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <Card className="border-none shadow-sm bg-primary/5">
+          <Card className="border-none shadow-sm bg-primary/5 cursor-pointer" onClick={() => copyToClipboard(user.accountNumber, "Account Number")}>
             <CardContent className="p-4 flex flex-col items-center gap-1 text-center">
               <p className="text-[10px] font-bold uppercase text-muted-foreground">Credit Input</p>
               <div className="flex items-center gap-1">
                 <span className="text-sm font-mono font-bold text-primary">{user.accountNumber}</span>
-                <Copy className="h-3 w-3 cursor-pointer opacity-50" onClick={() => copyToClipboard(user.accountNumber, "Account Number")} />
+                <Copy className="h-3 w-3 opacity-50" />
               </div>
             </CardContent>
           </Card>
-          <Card className="border-none shadow-sm bg-secondary/5">
+          <Card className="border-none shadow-sm bg-secondary/5 cursor-pointer" onClick={handleReferralClick}>
             <CardContent className="p-4 flex flex-col items-center gap-1 text-center">
               <p className="text-[10px] font-bold uppercase text-muted-foreground">Referral Code</p>
               <div className="flex items-center gap-1">
                 <span className="text-sm font-bold text-secondary">{user.myReferralCode || "NONE"}</span>
-                <Copy className="h-3 w-3 cursor-pointer opacity-50" onClick={() => copyToClipboard(user.myReferralCode || "", "Referral Code")} />
+                <Mail className="h-3 w-3 opacity-50" />
               </div>
             </CardContent>
           </Card>
@@ -208,48 +217,34 @@ export default function ProfilePage() {
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </button>
 
-            {/* Face Login */}
             <div className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3" onClick={() => handleBiometricClick('face')}>
                 <div className="w-10 h-10 bg-indigo-50 text-indigo-500 rounded-xl flex items-center justify-center">
                   <ScanFace className="h-5 w-5" />
                 </div>
-                <div onClick={() => handleBiometricClick('face')} className="cursor-pointer">
+                <div className="cursor-pointer">
                   <p className="text-sm font-bold">Face Login</p>
                   <p className="text-[10px] text-muted-foreground">{user.faceLoginActive ? 'Biometric enabled' : 'Secure biometric entry'}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                {user.faceLoginActive ? (
-                  <Button variant="ghost" size="sm" onClick={() => handleDisableBiometric('face')} className="text-red-500 h-8 px-2">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <span className="text-[10px] font-bold text-primary uppercase">OFF</span>
-                )}
-              </div>
+              {user.faceLoginActive && (
+                <Button variant="ghost" size="sm" onClick={() => handleDisableBiometric('face')} className="text-red-500 h-8 px-2"><Trash2 className="h-4 w-4" /></Button>
+              )}
             </div>
 
-            {/* Voice Lock */}
             <div className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3" onClick={() => handleBiometricClick('voice')}>
                 <div className="w-10 h-10 bg-teal-50 text-teal-500 rounded-xl flex items-center justify-center">
                   <MicVocal className="h-5 w-5" />
                 </div>
-                <div onClick={() => handleBiometricClick('voice')} className="cursor-pointer">
+                <div className="cursor-pointer">
                   <p className="text-sm font-bold">Voice Lock</p>
                   <p className="text-[10px] text-muted-foreground">{user.voiceLoginActive ? 'Voice print active' : 'Unlock with voice print'}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                {user.voiceLoginActive ? (
-                  <Button variant="ghost" size="sm" onClick={() => handleDisableBiometric('voice')} className="text-red-500 h-8 px-2">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <span className="text-[10px] font-bold text-primary uppercase">OFF</span>
-                )}
-              </div>
+              {user.voiceLoginActive && (
+                <Button variant="ghost" size="sm" onClick={() => handleDisableBiometric('voice')} className="text-red-500 h-8 px-2"><Trash2 className="h-4 w-4" /></Button>
+              )}
             </div>
 
             <button className="w-full p-4 flex items-center justify-between hover:bg-accent/50 transition-all text-left" onClick={() => router.push("/profile/settings")}>
@@ -257,10 +252,7 @@ export default function ProfilePage() {
                 <div className="w-10 h-10 bg-slate-50 text-slate-500 rounded-xl flex items-center justify-center">
                   <Settings className="h-5 w-5" />
                 </div>
-                <div>
-                  <p className="text-sm font-bold">General Settings</p>
-                  <p className="text-[10px] text-muted-foreground">App preferences</p>
-                </div>
+                <div><p className="text-sm font-bold">General Settings</p><p className="text-[10px] text-muted-foreground">App preferences</p></div>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </button>
@@ -270,10 +262,7 @@ export default function ProfilePage() {
                 <div className="w-10 h-10 bg-pink-50 text-pink-500 rounded-xl flex items-center justify-center">
                   {isUpdating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Music className="h-5 w-5" />}
                 </div>
-                <div>
-                  <p className="text-sm font-bold">Choose Ringing Tone</p>
-                  <p className="text-[10px] text-muted-foreground">Set custom call audio</p>
-                </div>
+                <div><p className="text-sm font-bold">Choose Ringing Tone</p><p className="text-[10px] text-muted-foreground">Set custom call audio</p></div>
               </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </button>
@@ -295,16 +284,11 @@ export default function ProfilePage() {
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tx.status === "Success" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}>
                         {tx.status === "Success" ? <CheckCircle2 className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
                       </div>
-                      <div>
-                        <p className="text-sm font-bold">{tx.type}</p>
-                        <p className="text-[10px] text-muted-foreground">{tx.createdAt?.seconds ? new Date(tx.createdAt.seconds * 1000).toLocaleString() : 'Just now'}</p>
-                      </div>
+                      <div><p className="text-sm font-bold">{tx.type}</p><p className="text-[10px] text-muted-foreground">{tx.createdAt?.seconds ? new Date(tx.createdAt.seconds * 1000).toLocaleString() : 'Just now'}</p></div>
                     </div>
                     <div className="text-right flex flex-col items-end gap-1">
                       <p className="text-sm font-bold">₦{tx.total?.toLocaleString() || tx.amount?.toLocaleString()}</p>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDeleteTx(tx.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50" onClick={() => handleDeleteTx(tx.id)}><Trash2 className="h-4 w-4" /></Button>
                     </div>
                   </div>
                 </Card>
@@ -331,13 +315,11 @@ export default function ProfilePage() {
               <AlertDialogContent className="bg-white rounded-3xl">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete your account and remove your data from our servers.
-                  </AlertDialogDescription>
+                  <AlertDialogDescription>Permanent action. All data will be removed.</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-                  <AlertDialogAction className="bg-red-500 text-white rounded-xl hover:bg-red-600">Delete Permanently</AlertDialogAction>
+                  <AlertDialogAction className="bg-red-500 text-white rounded-xl">Delete Permanently</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

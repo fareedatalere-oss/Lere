@@ -20,7 +20,7 @@ import {
   limit 
 } from "firebase/firestore";
 
-interface User {
+export interface User {
   id?: string;
   username: string;
   phoneNumber: string;
@@ -37,6 +37,8 @@ interface User {
   customRingtoneUrl?: string;
   isBlocked?: boolean;
   isAdmin?: boolean;
+  freePublishUsed?: boolean;
+  publishingSubscriptionExpiry?: string | null;
 }
 
 interface UserContextType {
@@ -60,7 +62,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        // Use onSnapshot for real-time updates (saves data/syncs biometrics instantly)
         unsubscribeProfile = onSnapshot(doc(firestore, "users", firebaseUser.uid), (snapshot) => {
           if (snapshot.exists()) {
             setUser({ id: firebaseUser.uid, ...snapshot.data() } as User);
@@ -112,11 +113,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         createdAt: new Date().toISOString(),
         myReferralCode: "LERE" + Math.floor(1000 + Math.random() * 9000),
         faceLoginActive: false,
-        voiceLoginActive: false
+        voiceLoginActive: false,
+        freePublishUsed: false,
+        publishingSubscriptionExpiry: null
       };
       
       await setDoc(doc(firestore, "users", uid), fullUser);
-      // User state will be updated by the onSnapshot listener automatically
     } catch (error) {
       console.error("Signup error:", error);
       throw error;
