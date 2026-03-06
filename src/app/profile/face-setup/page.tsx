@@ -54,7 +54,8 @@ export default function FaceSetupPage() {
   const handleSave = async () => {
     if (!user?.id || !firestore) return;
     try {
-      await updateDoc(doc(firestore, "users", user.id), {
+      const userRef = doc(firestore, "users", user.id);
+      await updateDoc(userRef, {
         faceLoginActive: true,
         faceData: "encrypted_face_template_placeholder",
         voiceLoginActive: false // Mutual exclusivity

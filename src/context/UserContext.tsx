@@ -12,7 +12,7 @@ import {
 import { 
   doc, 
   setDoc, 
-  getDoc, 
+  onSnapshot,
   collection, 
   query, 
   where, 
@@ -35,6 +35,8 @@ interface User {
   faceData?: string | null;
   voiceData?: string | null;
   customRingtoneUrl?: string;
+  isBlocked?: boolean;
+  isAdmin?: boolean;
 }
 
 interface UserContextType {
@@ -54,23 +56,31 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const { auth, firestore } = useFirebase();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    let unsubscribeProfile: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        try {
-          const userDoc = await getDoc(doc(firestore, "users", firebaseUser.uid));
-          if (userDoc.exists()) {
-            setUser(userDoc.data() as User);
+        // Use onSnapshot for real-time updates (saves data/syncs biometrics instantly)
+        unsubscribeProfile = onSnapshot(doc(firestore, "users", firebaseUser.uid), (snapshot) => {
+          if (snapshot.exists()) {
+            setUser({ id: firebaseUser.uid, ...snapshot.data() } as User);
           }
-        } catch (err) {
-          console.error("Error fetching user profile:", err);
-        }
+          setIsLoading(false);
+        }, (error) => {
+          console.error("Profile sync error:", error);
+          setIsLoading(false);
+        });
       } else {
         setUser(null);
+        if (unsubscribeProfile) unsubscribeProfile();
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeProfile) unsubscribeProfile();
+    };
   }, [auth, firestore]);
 
   const sanitizePhoneNumberForEmail = (phone: string) => {
@@ -106,7 +116,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       };
       
       await setDoc(doc(firestore, "users", uid), fullUser);
-      setUser(fullUser);
+      // User state will be updated by the onSnapshot listener automatically
     } catch (error) {
       console.error("Signup error:", error);
       throw error;
@@ -141,7 +151,6 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const newReward = (user.rewardBalance || 0) + amount;
     const userRef = doc(firestore, "users", user.id);
     await setDoc(userRef, { rewardBalance: newReward }, { merge: true });
-    setUser({ ...user, rewardBalance: newReward });
   };
 
   return (

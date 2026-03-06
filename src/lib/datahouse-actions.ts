@@ -3,7 +3,7 @@
 
 /**
  * @fileOverview Server actions for Datahouse API to bypass CORS restrictions.
- * Updated with user-provided REAL Token and Endpoints.
+ * Optimized for low data usage and specific user request structures.
  */
 
 const DATAHOUSE_TOKEN = 'Token 80ca2a529de4afa096c4eabefeb275dafe3a8941';
@@ -34,7 +34,6 @@ async function datahouseFetch(endpoint: string, options: RequestInit = {}) {
 }
 
 export async function buyAirtimeAction(data: { mobile_number: string, amount: number, network: string }) {
-  // Using user-provided structure for /api/topup/
   return datahouseFetch('/topup/', {
     method: 'POST',
     body: JSON.stringify({
@@ -48,7 +47,6 @@ export async function buyAirtimeAction(data: { mobile_number: string, amount: nu
 }
 
 export async function buyDataAction(data: { mobile_number: string, plan: number, network: string }) {
-  // Using user-provided structure for /api/data/
   return datahouseFetch('/data/', {
     method: 'POST',
     body: JSON.stringify({
@@ -56,6 +54,20 @@ export async function buyDataAction(data: { mobile_number: string, plan: number,
       mobile_number: data.mobile_number,
       plan: data.plan,
       Ported_number: true
+    }),
+  });
+}
+
+/**
+ * Data Recharge Pin Action based on user-provided example
+ */
+export async function buyDataPinAction(data: { plan_id: string, name_on_card: string }) {
+  return datahouseFetch('/datarechargepin/', {
+    method: 'POST',
+    body: JSON.stringify({
+      data_plan: data.plan_id,
+      quantity: "1",
+      name_on_card: data.name_on_card
     }),
   });
 }

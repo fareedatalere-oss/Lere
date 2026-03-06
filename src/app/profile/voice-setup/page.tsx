@@ -39,9 +39,9 @@ export default function VoiceSetupPage() {
 
   const handleSave = async () => {
     if (!user?.id || !firestore) return;
-    setStep("saving");
     try {
-      await updateDoc(doc(firestore, "users", user.id), {
+      const userRef = doc(firestore, "users", user.id);
+      await updateDoc(userRef, {
         voiceLoginActive: true,
         voiceData: "encrypted_voice_template_placeholder",
         faceLoginActive: false // Mutual exclusivity
