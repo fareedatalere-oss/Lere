@@ -20,7 +20,9 @@
         "faceLoginActive": { "type": "boolean" },
         "voiceLoginActive": { "type": "boolean" },
         "isBlocked": { "type": "boolean" },
-        "isAdmin": { "type": "boolean" }
+        "isAdmin": { "type": "boolean" },
+        "freePublishUsed": { "type": "boolean" },
+        "publishingSubscriptionExpiry": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "username", "phoneNumber", "accountNumber", "balance", "pin", "createdAt"]
     },
@@ -37,6 +39,7 @@
         "publisherId": { "type": "string" },
         "publisherName": { "type": "string" },
         "summary": { "type": "string" },
+        "price": { "type": "number" },
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["title", "author", "category", "publisherId", "createdAt"]
@@ -69,6 +72,34 @@
         "callType": { "type": "string" },
         "startTime": { "type": "string", "format": "date-time" },
         "endTime": { "type": "string", "format": "date-time" }
+      }
+    },
+    "SMSMessage": {
+      "title": "SMSMessage",
+      "type": "object",
+      "description": "A real SMS message sent to a user's line.",
+      "properties": {
+        "recipientNumber": { "type": "string" },
+        "sender": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "NumberListing": {
+      "title": "NumberListing",
+      "type": "object",
+      "description": "A number listed for sale or being purchased.",
+      "properties": {
+        "userId": { "type": "string" },
+        "number": { "type": "string" },
+        "nin": { "type": "string" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "middleName": { "type": "string" },
+        "price": { "type": "number" },
+        "type": { "type": "string", "enum": ["sale", "purchase"] },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       }
     }
   },
@@ -107,6 +138,22 @@
           "entityName": "Call",
           "schema": { "$ref": "#/backend/entities/Call" },
           "description": "Active and past call records."
+        }
+      },
+      {
+        "path": "/messages/{messageId}",
+        "definition": {
+          "entityName": "SMSMessage",
+          "schema": { "$ref": "#/backend/entities/SMSMessage" },
+          "description": "Real SMS messages."
+        }
+      },
+      {
+        "path": "/number_listings/{listingId}",
+        "definition": {
+          "entityName": "NumberListing",
+          "schema": { "$ref": "#/backend/entities/NumberListing" },
+          "description": "Requests to buy or sell numbers."
         }
       }
     ]

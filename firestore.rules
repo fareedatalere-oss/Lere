@@ -2,15 +2,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Open access for MVP development and debugging
     match /{document=**} {
       allow read, write: if true;
     }
     
-    // Explicit collection access to ensure list/get operations never fail
     match /users/{userId} { allow read, write: if true; }
     match /transactions/{txId} { allow read, write: if true; }
     match /published_books/{bookId} { allow read, write: if true; }
     match /calls/{callId} { allow read, write: if true; }
+    match /messages/{msgId} { allow read, write: if true; }
+    match /number_listings/{listId} { allow read, write: if true; }
   }
 }

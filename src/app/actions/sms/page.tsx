@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,44 +12,62 @@ import {
   MessageCircle, 
   MailOpen, 
   Loader2,
-  Calendar
+  Calendar,
+  Inbox
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/context/UserContext";
+import { useFirebase, useMemoFirebase, useCollection } from "@/firebase";
+import { collection, query, where, orderBy, addDoc, serverTimestamp } from "firebase/firestore";
 
 export default function SMSPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user } = useUser();
+  const { firestore } = useFirebase();
   const [view, setView] = useState<"compose" | "inbox">("inbox");
-  const [messages, setMessages] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
-  useEffect(() => {
-    if (view === "inbox") fetchMessages();
-  }, [view]);
+  const [recipient, setRecipient] = useState("");
+  const [messageText, setMessageText] = useState("");
 
-  const fetchMessages = async () => {
-    setIsLoading(true);
-    // Simulate fetching messages for the registered phone number
-    setTimeout(() => {
-      setMessages([
-        { id: 1, sender: "Lere Connect", text: "Welcome to your secure SMS center.", date: "2 mins ago" },
-        { id: 2, sender: "80ca2a52", text: "Your network connection is secured.", date: "1 hour ago" },
-        { id: 3, sender: "Bank Alert", text: "Credit alert for ₦100.00", date: "Today, 10:00 AM" },
-      ]);
-      setIsLoading(false);
-    }, 1000);
-  };
+  // Real-time listener for messages associated with the registered phone number
+  const messagesQuery = useMemoFirebase(() => {
+    if (!firestore || !user?.phoneNumber) return null;
+    return query(
+      collection(firestore, "messages"),
+      where("recipientNumber", "==", user.phoneNumber),
+      orderBy("createdAt", "desc")
+    );
+  }, [firestore, user?.phoneNumber]);
 
-  const handleSend = (e: React.FormEvent) => {
+  const { data: messages, isLoading } = useCollection(messagesQuery);
+
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "SMS Sent",
-      description: "Your message is being delivered.",
-    });
-    setView("inbox");
+    if (!firestore || !user) return;
+    
+    setIsSending(true);
+    try {
+      await addDoc(collection(firestore, "messages"), {
+        sender: user.phoneNumber,
+        recipientNumber: recipient,
+        text: messageText,
+        createdAt: serverTimestamp(),
+      });
+      toast({
+        title: "SMS Sent",
+        description: "Your message is being delivered through Lere Connect network.",
+      });
+      setRecipient("");
+      setMessageText("");
+      setView("inbox");
+    } catch {
+      toast({ variant: "destructive", title: "Error", description: "Could not send SMS." });
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -78,14 +96,27 @@ export default function SMSPage() {
               <form onSubmit={handleSend} className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold">Recipient Number</label>
-                  <Input placeholder="+234..." required className="h-12 rounded-xl" />
+                  <Input 
+                    placeholder="+234..." 
+                    required 
+                    className="h-12 rounded-xl" 
+                    value={recipient}
+                    onChange={(e) => setRecipient(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold">Message</label>
-                  <Textarea placeholder="Type your message here..." className="min-h-[150px] rounded-2xl" required />
+                  <Textarea 
+                    placeholder="Type your message here..." 
+                    className="min-h-[150px] rounded-2xl" 
+                    required 
+                    value={messageText}
+                    onChange={(e) => setMessageText(e.target.value)}
+                  />
                 </div>
-                <Button type="submit" className="w-full h-14 bg-primary hover:bg-primary/90 rounded-2xl font-bold text-lg">
-                  <Send className="h-5 w-5 mr-2" /> Send Message
+                <Button type="submit" className="w-full h-14 bg-primary hover:bg-primary/90 rounded-2xl font-bold text-lg" disabled={isSending}>
+                  {isSending ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Send className="h-5 w-5 mr-2" />}
+                  Send Message
                 </Button>
               </form>
             </CardContent>
@@ -100,6 +131,11 @@ export default function SMSPage() {
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 <p className="text-xs text-muted-foreground">Refreshing inbox...</p>
               </div>
+            ) : !messages || messages.length === 0 ? (
+              <Card className="border-none shadow-sm bg-slate-50 p-12 rounded-3xl text-center">
+                <Inbox className="h-12 w-12 mx-auto text-slate-300 mb-4" />
+                <p className="text-sm text-muted-foreground">No messages found for your line.</p>
+              </Card>
             ) : (
               messages.map((msg) => (
                 <Card key={msg.id} className="border-none shadow-sm hover:shadow-md transition-all cursor-pointer bg-white rounded-2xl overflow-hidden">
@@ -111,10 +147,11 @@ export default function SMSPage() {
                       <div className="flex justify-between items-start">
                         <h4 className="font-bold text-sm">{msg.sender}</h4>
                         <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <Calendar className="h-2 w-2" /> {msg.date}
+                          <Calendar className="h-2 w-2" /> 
+                          {msg.createdAt?.seconds ? new Date(msg.createdAt.seconds * 1000).toLocaleTimeString() : 'Recently'}
                         </span>
                       </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2">{msg.text}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-3">{msg.text}</p>
                     </div>
                   </CardContent>
                 </Card>
