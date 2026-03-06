@@ -130,7 +130,7 @@ export default function AdminDashboard() {
               <p className="text-[10px] font-bold text-muted-foreground uppercase">Active Tx</p>
               <h2 className="text-2xl font-bold text-emerald-600">{allTx?.length || 0}</h2>
             </CardContent>
-          </div>
+          </Card>
         </div>
 
         {/* Navigation */}
