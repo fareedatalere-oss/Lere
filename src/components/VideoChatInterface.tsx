@@ -12,7 +12,7 @@ import {
   MessageSquare, 
   Loader2,
   Play,
-  Video,
+  Video as VideoIcon,
   VideoOff,
   UserPlus,
   Type,
@@ -88,6 +88,7 @@ export function VideoChatInterface({ isOpen, onClose, receiverId, incomingCallId
     try {
       if (!firestore) return;
       pc.current = new RTCPeerConnection(servers);
+      
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localStream.current = stream;
       remoteStream.current = new MediaStream();
@@ -96,7 +97,10 @@ export function VideoChatInterface({ isOpen, onClose, receiverId, incomingCallId
       pc.current.ontrack = (e) => e.streams[0].getTracks().forEach(t => remoteStream.current?.addTrack(t));
       
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream.current;
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = remoteStream.current;
+        remoteVideoRef.current.onloadedmetadata = () => remoteVideoRef.current?.play().catch(() => {});
+      }
 
       if (incomingCallId) {
         const callDoc = doc(firestore, "calls", incomingCallId);
@@ -111,9 +115,11 @@ export function VideoChatInterface({ isOpen, onClose, receiverId, incomingCallId
           await pc.current.setLocalDescription(answer);
           await updateDoc(callDoc, { answer, status: 'accepted' });
         }
+        
         onSnapshot(collection(callDoc, "callerCandidates"), (s) => s.docChanges().forEach(c => {
-          if (c.type === "added") pc.current?.addIceCandidate(new RTCIceCandidate(c.doc.data()));
+          if (c.type === "added") pc.current?.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => {});
         }));
+        
         pc.current.onicecandidate = (e) => e.candidate && addDoc(collection(callDoc, "receiverCandidates"), e.candidate.toJSON());
         setCallStatus("Connected");
       } else {
@@ -123,6 +129,7 @@ export function VideoChatInterface({ isOpen, onClose, receiverId, incomingCallId
         
         const offer = await pc.current.createOffer();
         await pc.current.setLocalDescription(offer);
+        
         await setDoc(callDoc, { 
           status: 'ringing', 
           callerId: user.phoneNumber, 
@@ -140,12 +147,12 @@ export function VideoChatInterface({ isOpen, onClose, receiverId, incomingCallId
           }
           if (data?.status === 'ended') onClose();
         });
+        
         onSnapshot(collection(callDoc, "receiverCandidates"), (s) => s.docChanges().forEach(c => {
-          if (c.type === "added") pc.current?.addIceCandidate(new RTCIceCandidate(c.doc.data()));
+          if (c.type === "added") pc.current?.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => {});
         }));
       }
 
-      // Listen for messages on this call
       onSnapshot(collection(callDocRef.current, "messages"), (s) => {
         const msgs = s.docs.map(d => d.data()).sort((a,b) => (a.timestamp?.seconds || 0) - (b.timestamp?.seconds || 0));
         setMessages(msgs);
@@ -154,6 +161,7 @@ export function VideoChatInterface({ isOpen, onClose, receiverId, incomingCallId
     } catch (err) {
       console.error(err);
       setCallStatus("Error");
+      toast({ variant: "destructive", title: "Media Access Failed" });
     }
   };
 
@@ -168,46 +176,6 @@ export function VideoChatInterface({ isOpen, onClose, receiverId, incomingCallId
       timestamp: serverTimestamp()
     });
     setMessage("");
-  };
-
-  const toggleMic = () => {
-    if (localStream.current) {
-      localStream.current.getAudioTracks().forEach(t => t.enabled = !t.enabled);
-      setIsMuted(!isMuted);
-    }
-  };
-
-  const toggleVideo = () => {
-    if (localStream.current) {
-      localStream.current.getVideoTracks().forEach(t => t.enabled = !t.enabled);
-      setIsVideoOff(!isVideoOff);
-    }
-  };
-
-  const handleAddMember = async () => {
-    if (!addNumber) return;
-    toast({ title: "Adding Participant", description: `Ringing ${addNumber}...` });
-    setShowAddMember(false);
-    setAddNumber("");
-  };
-
-  const startVoiceNote = async () => {
-    if (!localStream.current) return;
-    voiceNoteRecorder.current = new MediaRecorder(localStream.current);
-    voiceNoteRecorder.current.start();
-    setIsRecording(true);
-  };
-
-  const stopVoiceNote = async () => {
-    if (!voiceNoteRecorder.current) return;
-    voiceNoteRecorder.current.stop();
-    setIsRecording(false);
-    toast({ title: "Voice Note Sent" });
-    await addDoc(collection(callDocRef.current, "messages"), {
-      senderId: user?.phoneNumber,
-      type: "audio",
-      timestamp: serverTimestamp()
-    });
   };
 
   const rainbowKeys = [
@@ -232,13 +200,12 @@ export function VideoChatInterface({ isOpen, onClose, receiverId, incomingCallId
           {isVideoOff && <div className="absolute inset-0 bg-slate-800 flex items-center justify-center"><VideoOff className="text-white/40" /></div>}
         </div>
         
-        {/* Floating In-Call Controls */}
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/40 backdrop-blur-xl p-3 rounded-full border border-white/10">
-          <Button variant="ghost" size="icon" className={`rounded-full h-12 w-12 ${isMuted ? 'bg-red-500 text-white' : 'bg-white/10 text-white'}`} onClick={toggleMic}>
+          <Button variant="ghost" size="icon" className={`rounded-full h-12 w-12 ${isMuted ? 'bg-red-500 text-white' : 'bg-white/10 text-white'}`} onClick={() => { localStream.current?.getAudioTracks().forEach(t => t.enabled = !t.enabled); setIsMuted(!isMuted); }}>
             {isMuted ? <MicOff /> : <Mic />}
           </Button>
-          <Button variant="ghost" size="icon" className={`rounded-full h-12 w-12 ${isVideoOff ? 'bg-red-500 text-white' : 'bg-white/10 text-white'}`} onClick={toggleVideo}>
-            {isVideoOff ? <VideoOff /> : <Video />}
+          <Button variant="ghost" size="icon" className={`rounded-full h-12 w-12 ${isVideoOff ? 'bg-red-500 text-white' : 'bg-white/10 text-white'}`} onClick={() => { localStream.current?.getVideoTracks().forEach(t => t.enabled = !t.enabled); setIsVideoOff(!isVideoOff); }}>
+            {isVideoOff ? <VideoOff /> : <VideoIcon />}
           </Button>
           <Button variant="destructive" size="icon" className="h-14 w-14 rounded-full shadow-lg" onClick={onClose}>
             <PhoneOff className="h-7 w-7" />
@@ -249,64 +216,48 @@ export function VideoChatInterface({ isOpen, onClose, receiverId, incomingCallId
         </div>
       </div>
 
-      {/* Chat & Interaction Section */}
+      {/* Chat Section */}
       <div className="w-full md:w-[400px] flex flex-col bg-white rounded-3xl overflow-hidden shadow-2xl relative">
         <div className="p-4 bg-primary text-white flex items-center justify-between shadow-md">
           <div className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5" />
-            <h3 className="font-bold">Chat Live with {receiverId}</h3>
+            <h3 className="font-bold">Real-time Chat with {receiverId}</h3>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setShowKeypad(!showKeypad)} className="rounded-full text-white">
             <Type className="h-5 w-5" />
           </Button>
         </div>
 
-        {/* Message Feed */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50 scrollbar-hide">
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-30 italic text-sm">
               <MessageSquare className="h-10 w-10 mb-2" />
-              <p>Say hello!</p>
+              <p>Start chatting...</p>
             </div>
           ) : (
             messages.map((m, i) => (
               <div key={i} className={`flex flex-col ${m.senderId === user?.phoneNumber ? 'items-end' : 'items-start'}`}>
                 <div className={`p-3 rounded-2xl max-w-[85%] text-sm shadow-sm ${m.senderId === user?.phoneNumber ? 'bg-primary text-white rounded-tr-none' : 'bg-white border rounded-tl-none'}`}>
-                  {m.type === 'audio' ? (
-                    <div className="flex items-center gap-2"><Play className="h-3 w-3 fill-current" /> <span className="text-[10px] font-bold uppercase">Voice Note</span></div>
-                  ) : <p>{m.text}</p>}
+                  <p>{m.text}</p>
                 </div>
               </div>
             ))
           )}
         </div>
 
-        {/* Interaction Controls */}
         <div className="p-4 bg-white border-t space-y-4">
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className={`rounded-2xl h-12 w-12 shrink-0 ${isRecording ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-100'}`}
-              onMouseDown={startVoiceNote}
-              onMouseUp={stopVoiceNote}
-            >
-              <Mic className="h-5 w-5" />
+          <form className="flex-1 relative flex gap-2" onSubmit={handleSendMessage}>
+            <Input 
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Type a message..."
+              className="h-12 rounded-2xl bg-slate-100 border-none focus-visible:ring-primary/20"
+            />
+            <Button type="submit" size="icon" className="h-12 w-12 rounded-2xl bg-primary text-white shadow-md" disabled={!message.trim()}>
+              <Send className="h-5 w-5" />
             </Button>
-            <form className="flex-1 relative" onSubmit={handleSendMessage}>
-              <Input 
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Type a message..."
-                className="h-12 rounded-2xl bg-slate-100 border-none pr-12 focus-visible:ring-primary/20"
-              />
-              <Button type="submit" size="icon" className="absolute right-1 top-1 h-10 w-10 rounded-xl bg-primary text-white shadow-md" disabled={!message.trim()}>
-                <Send className="h-4 w-4" />
-              </Button>
-            </form>
-          </div>
+          </form>
 
-          {/* Rainbow Keypad (Dynamic Keyboard) */}
           {showKeypad && (
             <div className="grid grid-cols-3 gap-2 animate-in slide-in-from-bottom-5">
               {rainbowKeys.map(rk => (
@@ -321,20 +272,6 @@ export function VideoChatInterface({ isOpen, onClose, receiverId, incomingCallId
             </div>
           )}
         </div>
-
-        {/* Add Member Overlay */}
-        {showAddMember && (
-          <div className="absolute inset-x-0 top-0 bottom-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6">
-            <div className="bg-white w-full rounded-3xl p-6 shadow-2xl animate-in zoom-in-95">
-              <h4 className="font-bold text-lg mb-4 text-center">Add to Group Video Chat</h4>
-              <Input placeholder="Enter Phone Number" className="h-14 rounded-2xl mb-4 text-center text-xl font-bold" value={addNumber} onChange={(e) => setAddNumber(e.target.value)} />
-              <div className="grid grid-cols-2 gap-3">
-                <Button variant="ghost" className="h-12 rounded-2xl" onClick={() => setShowAddMember(false)}>Cancel</Button>
-                <Button className="h-12 rounded-2xl bg-primary" onClick={handleAddMember}>Add Now</Button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

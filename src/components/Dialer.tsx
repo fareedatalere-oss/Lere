@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -17,8 +18,12 @@ import {
   Clock,
   Trash2,
   MessageSquare,
-  X
+  X,
+  Loader2
 } from "lucide-react";
+import { useFirebase } from "@/firebase";
+import { collection, query, where, getDocs, limit } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
 
 interface DialerProps {
   isOpen: boolean;
@@ -29,6 +34,9 @@ interface DialerProps {
 export function Dialer({ isOpen, onClose, onStartCall }: DialerProps) {
   const [number, setNumber] = useState("");
   const [recentCalls, setRecentCalls] = useState<string[]>([]);
+  const [isValidating, setIsValidating] = useState(false);
+  const { firestore } = useFirebase();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (isOpen) {
@@ -58,11 +66,38 @@ export function Dialer({ isOpen, onClose, onStartCall }: DialerProps) {
     setNumber(prev => prev.slice(0, -1));
   };
 
-  const handleAction = (type: "voice" | "video" | "chat") => {
-    if (!number) return;
-    saveToRecent(number);
-    onStartCall(type, number);
-    setNumber("");
+  const handleAction = async (type: "voice" | "video" | "chat") => {
+    if (!number || !firestore) return;
+
+    setIsValidating(true);
+    try {
+      // Real check: Does this user exist?
+      const usersRef = collection(firestore, "users");
+      const q = query(usersRef, where("phoneNumber", "==", number), limit(1));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        toast({
+          variant: "destructive",
+          title: "Number Not Found",
+          description: `${number} is not registered on Lere Connect.`,
+        });
+        setIsValidating(false);
+        return;
+      }
+
+      saveToRecent(number);
+      onStartCall(type, number);
+      setNumber("");
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Connection Error",
+        description: "Could not verify the recipient at this time.",
+      });
+    } finally {
+      setIsValidating(false);
+    }
   };
 
   const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"];
@@ -104,7 +139,7 @@ export function Dialer({ isOpen, onClose, onStartCall }: DialerProps) {
 
             <div className="space-y-2">
               <p className="text-[10px] font-bold uppercase text-muted-foreground flex items-center gap-1">
-                <Clock className="h-3 w-3" /> Recent History (Saved locally)
+                <Clock className="h-3 w-3" /> Recent History
               </p>
               <div className="flex flex-col gap-2 max-h-40 overflow-y-auto pr-1">
                 {recentCalls.length > 0 ? (
@@ -153,23 +188,26 @@ export function Dialer({ isOpen, onClose, onStartCall }: DialerProps) {
             <Button 
               className="h-14 rounded-2xl bg-green-500 hover:bg-green-600 text-white font-bold text-xs shadow-lg flex flex-col items-center justify-center p-0"
               onClick={() => handleAction("voice")}
-              disabled={!number}
+              disabled={!number || isValidating}
             >
-              <Phone className="h-5 w-5 mb-1" /> VOICE
+              {isValidating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Phone className="h-5 w-5 mb-1" />}
+              VOICE
             </Button>
             <Button 
               className="h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-bold text-xs shadow-lg flex flex-col items-center justify-center p-0"
               onClick={() => handleAction("video")}
-              disabled={!number}
+              disabled={!number || isValidating}
             >
-              <Video className="h-5 w-5 mb-1" /> VIDEO
+              {isValidating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Video className="h-5 w-5 mb-1" />}
+              VIDEO
             </Button>
             <Button 
               className="h-14 rounded-2xl bg-secondary hover:bg-secondary/90 text-white font-bold text-xs shadow-lg flex flex-col items-center justify-center p-0"
               onClick={() => handleAction("chat")}
-              disabled={!number}
+              disabled={!number || isValidating}
             >
-              <MessageSquare className="h-5 w-5 mb-1" /> VIDEO CHAT
+              {isValidating ? <Loader2 className="h-5 w-5 animate-spin" /> : <MessageSquare className="h-5 w-5 mb-1" />}
+              VIDEO CHAT
             </Button>
           </div>
         </div>

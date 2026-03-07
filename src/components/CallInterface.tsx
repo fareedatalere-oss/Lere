@@ -116,17 +116,21 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
     try {
       if (!firestore) return;
       pc.current = new RTCPeerConnection(servers);
+      
       const stream = await navigator.mediaDevices.getUserMedia({
         video: type === "video",
         audio: true,
       });
+      
       localStream.current = stream;
       remoteStream.current = new MediaStream();
+      
       stream.getTracks().forEach((track) => {
         if (pc.current && localStream.current) {
           pc.current.addTrack(track, localStream.current);
         }
       });
+
       pc.current.ontrack = (event) => {
         event.streams[0].getTracks().forEach((track) => {
           if (remoteStream.current) {
@@ -134,16 +138,25 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
           }
         });
       };
+
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStream.current;
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = remoteStream.current;
+        // Important: Audio output setup
+        remoteVideoRef.current.onloadedmetadata = () => {
+          remoteVideoRef.current?.play().catch(e => console.log("Audio play blocked", e));
+        };
+      }
 
       if (incomingCallId) {
         const callDoc = doc(firestore, "calls", incomingCallId);
         callDocRef.current = callDoc;
+        
         onSnapshot(callDoc, (snapshot) => {
           const data = snapshot.data();
           if (data?.status === 'ended' || data?.status === 'rejected') onClose();
         });
+
         const callSnapshot = await getDocs(collection(callDoc, "offer"));
         const offerData = callSnapshot.docs[0]?.data();
         if (offerData) {
@@ -155,14 +168,15 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
             status: 'accepted'
           });
         }
-        const callerCandidates = collection(callDoc, "callerCandidates");
-        onSnapshot(callerCandidates, (snapshot) => {
+
+        onSnapshot(collection(callDoc, "callerCandidates"), (snapshot) => {
           snapshot.docChanges().forEach((change) => {
             if (change.type === "added" && pc.current) {
-              pc.current.addIceCandidate(new RTCIceCandidate(change.doc.data()));
+              pc.current.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(e => {});
             }
           });
         });
+
         pc.current.onicecandidate = (event) => {
           if (event.candidate) addDoc(collection(callDoc, "receiverCandidates"), event.candidate.toJSON());
         };
@@ -170,11 +184,14 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
       } else if (receiverId) {
         const callDoc = doc(collection(firestore, "calls"));
         callDocRef.current = callDoc;
+
         pc.current.onicecandidate = (event) => {
           if (event.candidate) addDoc(collection(callDoc, "callerCandidates"), event.candidate.toJSON());
         };
+
         const offerDescription = await pc.current.createOffer();
         await pc.current.setLocalDescription(offerDescription);
+
         await setDoc(callDoc, { 
           status: 'ringing', 
           callerId: user.phoneNumber, 
@@ -182,10 +199,12 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
           callType: type,
           startTime: serverTimestamp() 
         });
+
         await addDoc(collection(callDoc, "offer"), {
           type: offerDescription.type,
           sdp: offerDescription.sdp
         });
+
         onSnapshot(callDoc, (snapshot) => {
           const data = snapshot.data();
           if (data?.answer && pc.current && !pc.current.currentRemoteDescription) {
@@ -194,36 +213,19 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
           }
           if (data?.status === 'ended' || data?.status === 'rejected') onClose();
         });
-        const receiverCandidates = collection(callDoc, "receiverCandidates");
-        onSnapshot(receiverCandidates, (snapshot) => {
+
+        onSnapshot(collection(callDoc, "receiverCandidates"), (snapshot) => {
           snapshot.docChanges().forEach((change) => {
             if (change.type === "added" && pc.current) {
-              pc.current.addIceCandidate(new RTCIceCandidate(change.doc.data()));
+              pc.current.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(e => {});
             }
           });
         });
       }
     } catch (error) {
       setCallStatus("Error connecting");
+      toast({ variant: "destructive", title: "Media Error", description: "Could not access microphone or camera." });
     }
-  };
-
-  const startRecording = () => {
-    if (!localStream.current) return;
-    const options = { mimeType: 'video/webm' };
-    mediaRecorder.current = new MediaRecorder(localStream.current, options);
-    mediaRecorder.current.ondataavailable = (e) => recordedChunks.current.push(e.data);
-    mediaRecorder.current.onstop = () => {
-      const blob = new Blob(recordedChunks.current, { type: 'video/webm' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `LereCall_${Date.now()}.webm`;
-      a.click();
-      recordedChunks.current = [];
-    };
-    mediaRecorder.current.start();
-    setIsRecording(true);
   };
 
   const stopRecording = () => {
@@ -235,7 +237,7 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
     if (isRecordingVoiceNote) {
       voiceNoteRecorder.current?.stop();
       setIsRecordingVoiceNote(false);
-      toast({ title: "Sent", description: "Voice note delivered to participants." });
+      toast({ title: "Sent", description: "Voice note delivered." });
     } else {
       if (!localStream.current) return;
       voiceNoteRecorder.current = new MediaRecorder(localStream.current);
@@ -247,7 +249,6 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
   const handleAddMember = async () => {
     if (!addNumber || !firestore) return;
     toast({ title: "Connecting", description: `Ringing ${addNumber}...` });
-    // In a mesh implementation, we'd start a new callDoc for this peer
     setShowAddMember(false);
     setAddNumber("");
   };
@@ -266,7 +267,7 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
       <div className="relative w-full max-w-2xl h-full flex flex-col items-center">
         {/* Call Info */}
         <div className="absolute top-10 text-center z-20 w-full">
-          <h2 className="text-white text-3xl font-bold mb-2">{receiverId || "Conference"}</h2>
+          <h2 className="text-white text-3xl font-bold mb-2">{receiverId || "Lere Participant"}</h2>
           <div className="flex items-center justify-center gap-2">
             <span className="text-secondary font-medium tracking-widest uppercase text-sm">{callStatus}</span>
             {isRecording && <Radio className="h-4 w-4 text-red-500 animate-pulse" />}
@@ -283,7 +284,9 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
                <Phone className="h-16 w-16 text-white" />
             </div>
           )}
-          <audio ref={remoteVideoRef} autoPlay />
+          {/* Audio output for voice calls */}
+          <audio ref={remoteVideoRef as any} autoPlay />
+          
           <div className="absolute bottom-4 right-4 w-24 h-32 rounded-xl border-2 border-white/20 overflow-hidden shadow-lg bg-black">
             <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
           </div>
@@ -314,11 +317,11 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
           </div>
         </div>
 
-        {/* Multi-Colored Keyboard Overlay */}
+        {/* Keypad Overlay */}
         {showKeypad && (
           <div className="absolute inset-x-0 bottom-40 mx-auto w-full max-w-xs bg-black/80 backdrop-blur-xl p-6 rounded-3xl grid grid-cols-3 gap-3 border border-white/10 z-50 animate-in slide-in-from-bottom-10">
             <div className="col-span-3 flex justify-between items-center mb-2">
-              <span className="text-white text-xs font-bold uppercase tracking-widest">DTMF Keypad</span>
+              <span className="text-white text-xs font-bold uppercase tracking-widest">In-Call Keypad</span>
               <X className="h-4 w-4 text-white cursor-pointer" onClick={() => setShowKeypad(false)} />
             </div>
             {rainbowKeys.map(rk => (
