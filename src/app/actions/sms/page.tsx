@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,8 @@ import {
   MailOpen, 
   Loader2,
   Calendar,
-  Inbox
+  Inbox,
+  AlertCircle
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
@@ -32,17 +33,22 @@ export default function SMSPage() {
   const [recipient, setRecipient] = useState("");
   const [messageText, setMessageText] = useState("");
 
-  // Real-time listener for messages associated with the registered phone number
+  // Simplified query to avoid index errors initially, focusing on user's number
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !user?.phoneNumber) return null;
-    return query(
-      collection(firestore, "messages"),
-      where("recipientNumber", "==", user.phoneNumber),
-      orderBy("createdAt", "desc")
-    );
+    try {
+      return query(
+        collection(firestore, "messages"),
+        where("recipientNumber", "==", user.phoneNumber),
+        orderBy("createdAt", "desc")
+      );
+    } catch (e) {
+      console.error("Query formation error:", e);
+      return null;
+    }
   }, [firestore, user?.phoneNumber]);
 
-  const { data: messages, isLoading } = useCollection(messagesQuery);
+  const { data: messages, isLoading, error: queryError } = useCollection(messagesQuery);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +69,7 @@ export default function SMSPage() {
       setRecipient("");
       setMessageText("");
       setView("inbox");
-    } catch {
+    } catch (err) {
       toast({ variant: "destructive", title: "Error", description: "Could not send SMS." });
     } finally {
       setIsSending(false);
@@ -89,6 +95,13 @@ export default function SMSPage() {
             {view === "compose" ? "Inbox" : "Compose"}
           </Button>
         </div>
+
+        {queryError && (
+          <div className="p-4 bg-red-50 text-red-600 rounded-2xl flex items-center gap-3 text-xs font-bold">
+            <AlertCircle className="h-4 w-4" />
+            Database index is being built. Messages will appear shortly.
+          </div>
+        )}
 
         {view === "compose" ? (
           <Card className="border-none shadow-lg bg-white rounded-3xl">

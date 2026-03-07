@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Sparkles, ShieldCheck, ExternalLink, Zap } from "lucide-react";
+import { ArrowLeft, Sparkles, ShieldCheck, ExternalLink, Zap, MonitorPlay } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 import { useToast } from "@/hooks/use-toast";
@@ -14,18 +14,20 @@ export default function WatchPage() {
   const { user, addReward } = useUser();
   const { toast } = useToast();
   const [isClaiming, setIsClaiming] = useState(false);
+  const [showAd, setShowAd] = useState(false);
 
   const SMART_LINK_ID = "3193409";
 
   const handleClaim = async () => {
     setIsClaiming(true);
-    // Simulate interactive earn process
-    await new Promise(r => setTimeout(r, 1500));
+    // Simulate real ad verification delay
+    await new Promise(r => setTimeout(r, 2000));
     await addReward(2.50);
     setIsClaiming(false);
+    setShowAd(true);
     toast({
       title: "Reward Earned!",
-      description: "₦2.50 added to your rewards. Open Smart Link to earn more.",
+      description: "₦2.50 added to your rewards. Open Smart Link to multiply your earnings.",
     });
   };
 
@@ -43,18 +45,29 @@ export default function WatchPage() {
           <h1 className="text-2xl font-bold">Watch & Earn</h1>
         </div>
 
+        {/* Adsterra Banner Container */}
+        <div className="w-full bg-slate-200 rounded-xl min-h-[100px] flex items-center justify-center border-2 border-dashed border-slate-300 relative overflow-hidden">
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+            <MonitorPlay className="h-6 w-6 text-slate-400 mb-2" />
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sponsored Advertisement</p>
+            <p className="text-[8px] text-slate-400">Ads will load here on live domain</p>
+          </div>
+          {/* Placeholder for real Adsterra script */}
+          {/* <script type="text/javascript" src="//pl12345.highperformanceformat.com/..."></script> */}
+        </div>
+
         <Card className="border-none shadow-xl overflow-hidden bg-slate-900 rounded-3xl aspect-video flex flex-col items-center justify-center p-8 text-center">
           <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mb-4 text-primary animate-pulse">
             <Zap className="h-8 w-8" />
           </div>
           <h2 className="text-white font-bold text-xl">Interactive Session</h2>
-          <p className="text-white/60 text-xs mt-2 mb-6">Complete the task and open the smart link to claim your reward.</p>
+          <p className="text-white/60 text-xs mt-2 mb-6">Complete the task and interact with the smart link to claim your payout.</p>
           <Button 
             className="w-full h-14 bg-primary hover:bg-primary/90 rounded-2xl text-white font-bold shadow-lg"
             onClick={handleClaim}
             disabled={isClaiming}
           >
-            {isClaiming ? "Processing..." : "Claim Reward ₦2.50"}
+            {isClaiming ? "Verifying..." : "Claim Reward ₦2.50"}
           </Button>
         </Card>
 
