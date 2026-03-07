@@ -3,10 +3,10 @@
 
 /**
  * @fileOverview Server actions for Datahouse API to bypass CORS restrictions.
- * Optimized for low data usage and specific user request structures.
+ * Robust error handling added to prevent Server Component crashes.
  */
 
-const DATAHOUSE_TOKEN = 'Token 80ca2a529de4afa096c4eabefeb275dafe3a8941';
+const DATAHOUSE_TOKEN = process.env.DATAHOUSE_TOKEN || 'Token 80ca2a529de4afa096c4eabefeb275dafe3a8941';
 const BASE_URL = 'https://www.datahouse.com.ng/api';
 
 async function datahouseFetch(endpoint: string, options: RequestInit = {}) {
@@ -20,16 +20,16 @@ async function datahouseFetch(endpoint: string, options: RequestInit = {}) {
       },
     });
     
-    const data = await response.json();
-    
     if (!response.ok) {
-      throw new Error(data.error || data.msg || `API Error: ${response.status}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || errorData.msg || `API Error: ${response.status}`);
     }
     
-    return data;
+    return await response.json();
   } catch (error: any) {
     console.error(`Datahouse API Error (${endpoint}):`, error);
-    throw error;
+    // Return a structured error object instead of throwing to prevent RSC crashes
+    return { error: true, message: error.message };
   }
 }
 
@@ -58,9 +58,6 @@ export async function buyDataAction(data: { mobile_number: string, plan: number,
   });
 }
 
-/**
- * Data Recharge Pin Action based on user-provided example
- */
 export async function buyDataPinAction(data: { plan_id: string, name_on_card: string }) {
   return datahouseFetch('/datarechargepin/', {
     method: 'POST',
@@ -74,7 +71,9 @@ export async function buyDataPinAction(data: { plan_id: string, name_on_card: st
 
 export async function getDataPlansAction(network: string) {
   const netId = network.toLowerCase() === '9mobile' ? 4 : network.toLowerCase() === 'glo' ? 3 : network.toLowerCase() === 'airtel' ? 2 : 1;
-  return datahouseFetch(`/data_plans/${netId}`);
+  const result = await datahouseFetch(`/data_plans/${netId}`);
+  if (result.error) return []; // Return empty array on failure
+  return result;
 }
 
 export async function getExamPinsAction() {

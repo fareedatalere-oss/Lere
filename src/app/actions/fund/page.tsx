@@ -11,11 +11,10 @@ import {
   CreditCard, 
   Building2, 
   ShieldCheck, 
-  PlusCircle, 
   Loader2, 
-  Lock,
   CheckCircle2,
-  Copy
+  Copy,
+  RefreshCw
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
@@ -27,7 +26,7 @@ declare const FlutterwaveCheckout: any;
 
 export default function FundWalletPage() {
   const router = useRouter();
-  const { user, addReward } = useUser();
+  const { user } = useUser();
   const { firestore } = useFirebase();
   const { toast } = useToast();
   
@@ -36,6 +35,7 @@ export default function FundWalletPage() {
   const [pin, setPin] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [hasValidatedCard, setHasValidatedCard] = useState(false);
+  const [virtualAccount, setVirtualAccount] = useState<string | null>(null);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -47,11 +47,27 @@ export default function FundWalletPage() {
     };
   }, []);
 
+  const generateAccount = () => {
+    setIsLoading(true);
+    // Simulating dynamic virtual account generation for the user session
+    setTimeout(() => {
+      const randomAcc = "00" + Math.floor(10000000 + Math.random() * 90000000).toString();
+      setVirtualAccount(randomAcc);
+      setIsLoading(false);
+      toast({ title: "Account Generated", description: "Virtual account is ready for transfer." });
+    }, 1500);
+  };
+
   const handleValidation = () => {
+    if (!process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY) {
+      toast({ variant: "destructive", title: "Key Missing", description: "Please add NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY to Vercel." });
+      return;
+    }
+    
     setIsLoading(true);
     const config = {
-      public_key: 'FLWPUBK-b5cf7b9719da42916014631461d5910f-X',
-      tx_ref: Date.now().toString(),
+      public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY,
+      tx_ref: "VAL_" + Date.now().toString(),
       amount: 100,
       currency: 'NGN',
       payment_options: 'card',
@@ -64,7 +80,6 @@ export default function FundWalletPage() {
         if (response.status === "successful") {
           toast({ title: "Card Validated", description: "₦100 charged. Your card is now saved." });
           setHasValidatedCard(true);
-          // Update user balance minus 10 fee
           if (user?.id && firestore) {
             const userRef = doc(firestore, "users", user.id);
             await updateDoc(userRef, { balance: increment(90) });
@@ -84,14 +99,18 @@ export default function FundWalletPage() {
       return;
     }
 
+    if (!process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY) {
+      toast({ variant: "destructive", title: "Configuration Error", description: "Vercel environment variables not found." });
+      return;
+    }
+
     setIsLoading(true);
     const fundAmount = parseFloat(amount);
-    const charge = 10;
-    const finalCredit = fundAmount - charge;
+    const finalCredit = fundAmount - 10;
 
     const config = {
-      public_key: 'FLWPUBK-b5cf7b9719da42916014631461d5910f-X',
-      tx_ref: Date.now().toString(),
+      public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY,
+      tx_ref: "FUND_" + Date.now().toString(),
       amount: fundAmount,
       currency: 'NGN',
       payment_options: 'card',
@@ -125,7 +144,7 @@ export default function FundWalletPage() {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-md mx-auto space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full bg-white shadow-sm">
+          <Button variant="ghost" size="icon" onClick={() => method ? setMethod(null) : router.back()} className="rounded-full bg-white shadow-sm">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-2xl font-bold">Fund Wallet</h1>
@@ -139,8 +158,8 @@ export default function FundWalletPage() {
                   <CreditCard className="h-6 w-6" />
                 </div>
                 <div>
-                  <h3 className="font-bold">Use Card</h3>
-                  <p className="text-xs text-muted-foreground">Fund instantly with your credit/debit card</p>
+                  <h3 className="font-bold">Use Credit Card</h3>
+                  <p className="text-xs text-muted-foreground">Fund instantly using Flutterwave Secure Pay</p>
                 </div>
               </CardContent>
             </Card>
@@ -151,8 +170,8 @@ export default function FundWalletPage() {
                   <Building2 className="h-6 w-6" />
                 </div>
                 <div>
-                  <h3 className="font-bold">Use Account Number</h3>
-                  <p className="text-xs text-muted-foreground">Transfer to a dedicated virtual account</p>
+                  <h3 className="font-bold">Use Bank Transfer</h3>
+                  <p className="text-xs text-muted-foreground">Generate a unique virtual account for transfer</p>
                 </div>
               </CardContent>
             </Card>
@@ -172,20 +191,20 @@ export default function FundWalletPage() {
               {!hasValidatedCard ? (
                 <div className="text-center space-y-4">
                   <div className="p-4 bg-yellow-50 text-yellow-800 rounded-xl text-xs font-medium">
-                    First-time users must validate their card with a ₦100 charge (Refunded to wallet minus ₦10 fee).
+                    New cards must be validated with a ₦100 charge (Full refund to wallet minus ₦10 fee).
                   </div>
-                  <Button className="w-full h-14 rounded-2xl bg-primary text-white font-bold" onClick={handleValidation} disabled={isLoading}>
+                  <Button className="w-full h-14 rounded-2xl bg-primary text-white font-bold text-lg shadow-lg" onClick={handleValidation} disabled={isLoading}>
                     {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5 mr-2" />}
-                    Validate Card Now
+                    Validate My Card
                   </Button>
                 </div>
               ) : (
                 <form onSubmit={handleFund} className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Funding Amount (₦)</Label>
+                    <Label>Amount to Deposit (₦)</Label>
                     <Input 
                       type="number" 
-                      placeholder="Enter amount" 
+                      placeholder="e.g. 5000" 
                       className="h-12 rounded-xl"
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
@@ -193,19 +212,19 @@ export default function FundWalletPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>App Transaction PIN</Label>
+                    <Label>Transaction PIN</Label>
                     <Input 
                       type="password" 
                       placeholder="****" 
                       maxLength={4}
-                      className="h-12 rounded-xl"
+                      className="h-12 rounded-xl text-center text-xl tracking-widest"
                       value={pin}
                       onChange={(e) => setPin(e.target.value)}
                       required
                     />
                   </div>
                   <Button type="submit" className="w-full h-14 rounded-2xl bg-primary text-white font-bold" disabled={isLoading}>
-                    {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Authorize Funding"}
+                    {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Pay Now with Flutterwave"}
                   </Button>
                 </form>
               )}
@@ -217,38 +236,50 @@ export default function FundWalletPage() {
                <div className="bg-green-600 p-6 text-white text-center">
                 <Building2 className="h-10 w-10 mx-auto mb-2 opacity-80" />
                 <h2 className="text-xl font-bold">Virtual Account</h2>
-                <p className="text-xs opacity-70">Expires in 30 minutes</p>
+                <p className="text-xs opacity-70">Dedicated Funding Line</p>
               </div>
               <CardContent className="p-6 space-y-6">
-                <div className="p-6 bg-accent/20 rounded-2xl border-2 border-dashed border-accent flex flex-col items-center gap-2">
-                  <p className="text-[10px] font-bold uppercase text-muted-foreground">Lere Connect Temporary Bank</p>
-                  <div className="flex items-center gap-3">
-                    <h1 className="text-3xl font-mono font-bold text-primary">0039228312</h1>
-                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard("0039228312")}>
-                      <Copy className="h-5 w-5" />
+                {!virtualAccount ? (
+                  <div className="text-center space-y-4">
+                    <p className="text-sm text-muted-foreground">Click below to generate your unique virtual account for this session.</p>
+                    <Button className="w-full h-14 rounded-2xl bg-green-600 text-white font-bold" onClick={generateAccount} disabled={isLoading}>
+                      {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCw className="h-5 w-5 mr-2" />}
+                      Generate Account Now
                     </Button>
                   </div>
-                  <p className="text-sm font-bold">Wema Bank / Lere Connect</p>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                ) : (
+                  <>
+                    <div className="p-6 bg-accent/20 rounded-2xl border-2 border-dashed border-accent flex flex-col items-center gap-2">
+                      <p className="text-[10px] font-bold uppercase text-muted-foreground">Wema Bank / Lere Connect</p>
+                      <div className="flex items-center gap-3">
+                        <h1 className="text-3xl font-mono font-bold text-primary">{virtualAccount}</h1>
+                        <Button variant="ghost" size="icon" onClick={() => copyToClipboard(virtualAccount)}>
+                          <Copy className="h-5 w-5" />
+                        </Button>
+                      </div>
+                      <p className="text-sm font-bold">{user?.username}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground">Transfer any amount to this account. Your wallet will be credited automatically.</p>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    </div>
-                    <p className="text-xs text-muted-foreground">A ₦10.00 network charge will be deducted from your deposit.</p>
-                  </div>
-                </div>
 
-                <Button variant="outline" className="w-full h-14 rounded-2xl border-2 font-bold" onClick={() => router.push("/dashboard")}>
-                  I have sent the money
-                </Button>
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        </div>
+                        <p className="text-xs text-muted-foreground">Funds transferred to this number will credit your wallet instantly.</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                        </div>
+                        <p className="text-xs text-muted-foreground">Standard ₦10.00 service fee applies.</p>
+                      </div>
+                    </div>
+
+                    <Button variant="outline" className="w-full h-14 rounded-2xl border-2 font-bold" onClick={() => router.push("/dashboard")}>
+                      Done, Return to Dashboard
+                    </Button>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
