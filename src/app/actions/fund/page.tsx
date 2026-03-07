@@ -14,13 +14,15 @@ import {
   Loader2, 
   CheckCircle2,
   Copy,
-  RefreshCw
+  RefreshCw,
+  AlertCircle
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 import { useFirebase } from "@/firebase";
 import { doc, updateDoc, increment } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { generateVirtualAccountAction } from "@/lib/flutterwave-actions";
 
 declare const FlutterwaveCheckout: any;
 
@@ -35,7 +37,7 @@ export default function FundWalletPage() {
   const [pin, setPin] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [hasValidatedCard, setHasValidatedCard] = useState(false);
-  const [virtualAccount, setVirtualAccount] = useState<string | null>(null);
+  const [virtualAccount, setVirtualAccount] = useState<{number: string, bank: string} | null>(null);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -47,20 +49,36 @@ export default function FundWalletPage() {
     };
   }, []);
 
-  const generateAccount = () => {
+  const generateRealAccount = async () => {
+    if (!user) return;
     setIsLoading(true);
-    // Simulating dynamic virtual account generation for the user session
-    setTimeout(() => {
-      const randomAcc = "00" + Math.floor(10000000 + Math.random() * 90000000).toString();
-      setVirtualAccount(randomAcc);
+    
+    try {
+      const result = await generateVirtualAccountAction({
+        email: `${user.phoneNumber}@lereconnect.com`,
+        name: user.username,
+        phone: user.phoneNumber
+      });
+
+      if (result.error) {
+        throw new Error(result.message);
+      }
+
+      setVirtualAccount({
+        number: result.account_number,
+        bank: result.bank_name
+      });
+      toast({ title: "Account Generated", description: `Transfer to ${result.bank_name} now.` });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "API Error", description: err.message });
+    } finally {
       setIsLoading(false);
-      toast({ title: "Account Generated", description: "Virtual account is ready for transfer." });
-    }, 1500);
+    }
   };
 
   const handleValidation = () => {
     if (!process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY) {
-      toast({ variant: "destructive", title: "Key Missing", description: "Please add NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY to Vercel." });
+      toast({ variant: "destructive", title: "Configuration Error", description: "Flutterwave public key missing in project settings." });
       return;
     }
     
@@ -78,7 +96,7 @@ export default function FundWalletPage() {
       },
       callback: async (response: any) => {
         if (response.status === "successful") {
-          toast({ title: "Card Validated", description: "₦100 charged. Your card is now saved." });
+          toast({ title: "Card Validated", description: "₦100 charged. Refunding to wallet..." });
           setHasValidatedCard(true);
           if (user?.id && firestore) {
             const userRef = doc(firestore, "users", user.id);
@@ -96,11 +114,6 @@ export default function FundWalletPage() {
     e.preventDefault();
     if (pin !== user?.pin) {
       toast({ variant: "destructive", title: "Invalid PIN", description: "The transaction PIN entered is incorrect." });
-      return;
-    }
-
-    if (!process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY) {
-      toast({ variant: "destructive", title: "Configuration Error", description: "Vercel environment variables not found." });
       return;
     }
 
@@ -236,43 +249,32 @@ export default function FundWalletPage() {
                <div className="bg-green-600 p-6 text-white text-center">
                 <Building2 className="h-10 w-10 mx-auto mb-2 opacity-80" />
                 <h2 className="text-xl font-bold">Virtual Account</h2>
-                <p className="text-xs opacity-70">Dedicated Funding Line</p>
+                <p className="text-xs opacity-70">Official Flutterwave Channel</p>
               </div>
               <CardContent className="p-6 space-y-6">
                 {!virtualAccount ? (
                   <div className="text-center space-y-4">
-                    <p className="text-sm text-muted-foreground">Click below to generate your unique virtual account for this session.</p>
-                    <Button className="w-full h-14 rounded-2xl bg-green-600 text-white font-bold" onClick={generateAccount} disabled={isLoading}>
+                    <p className="text-sm text-muted-foreground">Click below to generate your unique Flutterwave virtual account tied to your phone number.</p>
+                    <Button className="w-full h-14 rounded-2xl bg-green-600 text-white font-bold shadow-lg" onClick={generateRealAccount} disabled={isLoading}>
                       {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCw className="h-5 w-5 mr-2" />}
-                      Generate Account Now
+                      Generate Real Account
                     </Button>
                   </div>
                 ) : (
                   <>
                     <div className="p-6 bg-accent/20 rounded-2xl border-2 border-dashed border-accent flex flex-col items-center gap-2">
-                      <p className="text-[10px] font-bold uppercase text-muted-foreground">Wema Bank / Lere Connect</p>
+                      <p className="text-[10px] font-bold uppercase text-muted-foreground">{virtualAccount.bank} / Lere Connect</p>
                       <div className="flex items-center gap-3">
-                        <h1 className="text-3xl font-mono font-bold text-primary">{virtualAccount}</h1>
-                        <Button variant="ghost" size="icon" onClick={() => copyToClipboard(virtualAccount)}>
+                        <h1 className="text-3xl font-mono font-bold text-primary">{virtualAccount.number}</h1>
+                        <Button variant="ghost" size="icon" onClick={() => copyToClipboard(virtualAccount.number)}>
                           <Copy className="h-5 w-5" />
                         </Button>
                       </div>
                       <p className="text-sm font-bold">{user?.username}</p>
                     </div>
 
-                    <div className="space-y-4">
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        </div>
-                        <p className="text-xs text-muted-foreground">Funds transferred to this number will credit your wallet instantly.</p>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        </div>
-                        <p className="text-xs text-muted-foreground">Standard ₦10.00 service fee applies.</p>
-                      </div>
+                    <div className="p-4 bg-blue-50 text-blue-800 rounded-xl text-[10px] font-bold uppercase flex gap-2 items-center">
+                      <AlertCircle className="h-4 w-4" /> This is a real Flutterwave virtual account.
                     </div>
 
                     <Button variant="outline" className="w-full h-14 rounded-2xl border-2 font-bold" onClick={() => router.push("/dashboard")}>

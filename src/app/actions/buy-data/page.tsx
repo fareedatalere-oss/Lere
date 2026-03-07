@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Smartphone, Loader2, Search, ChevronRight, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Smartphone, Loader2, Search, ChevronRight, ShieldCheck, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/context/UserContext";
@@ -38,11 +38,15 @@ export default function BuyDataPage() {
 
   const fetchPlans = async (net: string) => {
     setIsLoading(true);
+    setPlans([]);
     try {
       const data = await getDataPlansAction(net);
+      if (data.error) {
+        throw new Error(data.message);
+      }
       setPlans(Array.isArray(data) ? data : data.results || []);
     } catch (err: any) {
-      toast({ variant: "destructive", title: "API Error", description: err.message });
+      toast({ variant: "destructive", title: "Plan Error", description: err.message });
       setStep("network");
     } finally { setIsLoading(false); }
   };
@@ -62,10 +66,10 @@ export default function BuyDataPage() {
       return;
     }
 
-    const total = parseFloat(selectedPlan.price) + 50; // ₦50 charge
+    const total = parseFloat(selectedPlan.price) + 50;
 
     if (user.balance < total) {
-      toast({ variant: "destructive", title: "Insufficient Funds", description: `Total is ₦${total.toLocaleString()}. Balance: ₦${user.balance.toLocaleString()}` });
+      toast({ variant: "destructive", title: "Insufficient Funds", description: `Total: ₦${total.toLocaleString()}. Balance: ₦${user.balance.toLocaleString()}` });
       return;
     }
 
@@ -92,10 +96,10 @@ export default function BuyDataPage() {
           createdAt: serverTimestamp()
         });
 
-        toast({ title: "Purchase Successful", description: `${selectedPlan.name} active on ${phoneNumber}. Fee: ₦50.` });
+        toast({ title: "Purchase Successful", description: `${selectedPlan.name} active on ${phoneNumber}.` });
         router.push("/dashboard");
       } else {
-        throw new Error(result.error || result.msg || "Transaction Failed");
+        throw new Error(result.message || result.error || result.msg || "Transaction Failed");
       }
     } catch (err: any) {
       await addDoc(collection(firestore, "transactions"), {
@@ -106,7 +110,7 @@ export default function BuyDataPage() {
         error: err.message,
         createdAt: serverTimestamp()
       });
-      toast({ variant: "destructive", title: "Failed", description: err.message });
+      toast({ variant: "destructive", title: "Transaction Failed", description: err.message });
     } finally { setIsLoading(false); }
   };
 
@@ -129,7 +133,7 @@ export default function BuyDataPage() {
           <div className="grid grid-cols-2 gap-4">
             {networks.map(n => (
               <Button key={n.id} variant="outline" className="h-32 flex flex-col gap-2 rounded-3xl bg-white border-none shadow-sm" onClick={() => handleNetworkSelect(n.id)}>
-                <div className={`w-12 h-12 ${n.color} rounded-full flex items-center justify-center font-bold`}>{n.icon}</div>
+                <div className={`w-12 h-12 ${n.color} rounded-full flex items-center justify-center font-bold text-xl`}>{n.icon}</div>
                 <span className="font-bold">{n.name}</span>
               </Button>
             ))}
@@ -143,11 +147,12 @@ export default function BuyDataPage() {
               <Input placeholder="Search plans..." className="pl-10 h-12 rounded-2xl bg-white border-none shadow-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
             {isLoading ? (
-              <div className="flex flex-col items-center py-20 gap-2"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="text-xs">Fetching plans...</p></div>
+              <div className="flex flex-col items-center py-20 gap-2"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="text-xs font-bold">Forcing Plans Load...</p></div>
             ) : (
               <div className="grid gap-2 max-h-[60vh] overflow-y-auto pr-1">
+                {plans.length === 0 && <p className="text-center text-xs text-muted-foreground py-10 italic">No plans available for this network.</p>}
                 {plans.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).map(p => (
-                  <Card key={p.id} className="border-none shadow-sm cursor-pointer hover:bg-primary/5" onClick={() => { setSelectedPlan(p); setStep("details"); }}>
+                  <Card key={p.id} className="border-none shadow-sm cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => { setSelectedPlan(p); setStep("details"); }}>
                     <CardContent className="p-4 flex justify-between items-center">
                       <div>
                         <p className="font-bold text-sm">{p.name}</p>
@@ -166,16 +171,16 @@ export default function BuyDataPage() {
           <Card className="border-none shadow-xl rounded-3xl bg-white">
             <CardContent className="pt-6">
               <form onSubmit={(e) => { e.preventDefault(); setStep("confirm"); }} className="space-y-4">
-                <div className="p-4 bg-primary/5 rounded-2xl text-center">
-                  <p className="text-[10px] font-bold uppercase text-muted-foreground">Selected Plan</p>
+                <div className="p-4 bg-primary/5 rounded-2xl text-center border-2 border-dashed border-primary/20">
+                  <p className="text-[10px] font-bold uppercase text-muted-foreground">Selected Data Plan</p>
                   <p className="text-xl font-bold">{selectedPlan.name}</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Recipient Phone Number</Label>
-                  <Input placeholder="080..." required value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="h-12 rounded-xl" />
+                  <Input placeholder="080..." required value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="h-14 rounded-2xl text-lg font-bold" />
                 </div>
                 <Button type="submit" className="w-full h-14 bg-primary text-white font-bold rounded-2xl shadow-lg">
-                  Continue
+                  Continue to Payment
                 </Button>
               </form>
             </CardContent>
@@ -198,12 +203,12 @@ export default function BuyDataPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" /> Enter Transaction PIN</Label>
-                  <Input type="password" placeholder="****" maxLength={4} required value={pin} onChange={(e) => setPin(e.target.value)} className="h-14 rounded-xl text-center text-2xl tracking-[1em]" />
+                  <Label className="flex items-center gap-2 font-bold"><ShieldCheck className="h-4 w-4 text-primary" /> Enter Transaction PIN</Label>
+                  <Input type="password" placeholder="****" maxLength={4} required value={pin} onChange={(e) => setPin(e.target.value)} className="h-16 rounded-2xl text-center text-3xl tracking-[1em]" />
                 </div>
 
                 <Button type="submit" className="w-full h-14 bg-primary text-white font-bold rounded-2xl shadow-lg" disabled={isLoading}>
-                  {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Confirm & Pay Now"}
+                  {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Confirm & Buy Now"}
                 </Button>
               </form>
             </CardContent>
