@@ -42,13 +42,15 @@ export default function BuyDataPage() {
     try {
       const data = await getDataPlansAction(net);
       if (data.error) {
-        throw new Error(data.message);
+        throw new Error(data.message || "Failed to fetch plans");
       }
-      setPlans(Array.isArray(data) ? data : data.results || []);
+      setPlans(Array.isArray(data) ? data : []);
     } catch (err: any) {
       toast({ variant: "destructive", title: "Plan Error", description: err.message });
       setStep("network");
-    } finally { setIsLoading(false); }
+    } finally { 
+      setIsLoading(false); 
+    }
   };
 
   const handleNetworkSelect = (id: string) => {
@@ -81,7 +83,7 @@ export default function BuyDataPage() {
         network: selectedNetwork!.toUpperCase()
       });
 
-      if (result.Status === "successful" || result.status === "successful") {
+      if (result.Status?.toLowerCase() === "successful" || result.status?.toLowerCase() === "successful") {
         const userRef = doc(firestore, "users", user.id!);
         await updateDoc(userRef, { balance: increment(-total) });
         
@@ -111,7 +113,9 @@ export default function BuyDataPage() {
         createdAt: serverTimestamp()
       });
       toast({ variant: "destructive", title: "Transaction Failed", description: err.message });
-    } finally { setIsLoading(false); }
+    } finally { 
+      setIsLoading(false); 
+    }
   };
 
   return (
@@ -147,10 +151,10 @@ export default function BuyDataPage() {
               <Input placeholder="Search plans..." className="pl-10 h-12 rounded-2xl bg-white border-none shadow-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
             {isLoading ? (
-              <div className="flex flex-col items-center py-20 gap-2"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="text-xs font-bold">Forcing Plans Load...</p></div>
+              <div className="flex flex-col items-center py-20 gap-2"><Loader2 className="h-8 w-8 animate-spin text-primary" /><p className="text-xs font-bold">Fetching Live Plans...</p></div>
             ) : (
               <div className="grid gap-2 max-h-[60vh] overflow-y-auto pr-1">
-                {plans.length === 0 && <p className="text-center text-xs text-muted-foreground py-10 italic">No plans available for this network.</p>}
+                {plans.length === 0 && <p className="text-center text-xs text-muted-foreground py-10 italic">No plans available or API balance low.</p>}
                 {plans.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).map(p => (
                   <Card key={p.id} className="border-none shadow-sm cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => { setSelectedPlan(p); setStep("details"); }}>
                     <CardContent className="p-4 flex justify-between items-center">

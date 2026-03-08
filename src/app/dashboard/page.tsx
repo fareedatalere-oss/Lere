@@ -282,7 +282,7 @@ export default function Dashboard() {
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg cursor-pointer" onClick={() => router.push("/profile")}><User className="text-white h-6 w-6" /></div>
-            <h1 className="text-xl font-bold text-primary">Lere Connect</h1>
+            <h1 className="text-xl font-bold text-primary">Lere Tele App</h1>
           </div>
           <Button className="rounded-full bg-primary shadow-md h-12 px-6" onClick={() => setIsDialerOpen(true)}><Grid className="h-5 w-5 mr-2" /> DIAL</Button>
           <Button variant="ghost" size="icon" onClick={() => router.push("/profile")} className="rounded-full"><User className="h-5 w-5 text-muted-foreground" /></Button>

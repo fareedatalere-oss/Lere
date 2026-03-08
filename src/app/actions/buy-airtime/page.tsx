@@ -62,7 +62,7 @@ export default function BuyAirtimePage() {
         network: network.toUpperCase()
       });
 
-      if (result.Status === "successful" || result.status === "successful") {
+      if (result.Status?.toLowerCase() === "successful" || result.status?.toLowerCase() === "successful") {
         const userRef = doc(firestore, "users", user.id!);
         await updateDoc(userRef, { balance: increment(-total) });
         
@@ -80,7 +80,7 @@ export default function BuyAirtimePage() {
         toast({ title: "Purchase Successful", description: `₦${val} sent to ${phoneNumber}. Fee: ₦${charge.toFixed(2)}.` });
         router.push("/dashboard");
       } else {
-        throw new Error(result.error || result.msg || "API Transaction Failed");
+        throw new Error(result.error || result.msg || result.message || "API Transaction Failed");
       }
     } catch (err: any) {
       await addDoc(collection(firestore, "transactions"), {

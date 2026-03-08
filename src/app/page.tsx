@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useUser } from "@/context/UserContext";
@@ -12,7 +13,7 @@ export default function Home() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse text-primary font-bold text-2xl">Lere Connect...</div>
+        <div className="animate-pulse text-primary font-bold text-2xl">Lere Tele App...</div>
       </div>
     );
   }
@@ -25,7 +26,7 @@ export default function Home() {
           <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
             <span className="text-white font-bold text-xl">L</span>
           </div>
-          <span className="text-xl font-bold text-primary">Lere Connect</span>
+          <span className="text-xl font-bold text-primary">Lere Tele App</span>
         </div>
         <div className="flex gap-4">
           <Button variant="ghost" onClick={() => router.push("/login")}>Login</Button>
@@ -83,7 +84,7 @@ export default function Home() {
       </main>
 
       <footer className="p-8 border-t bg-white text-center text-muted-foreground text-sm">
-        &copy; {new Date().getFullYear()} Lere Connect. All rights reserved.
+        &copy; {new Date().getFullYear()} Lere Tele App. All rights reserved.
       </footer>
     </div>
   );

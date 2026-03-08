@@ -6,15 +6,15 @@ import { FirebaseClientProvider } from "@/firebase";
 import { UserProvider } from "@/context/UserContext";
 
 export const metadata: Metadata = {
-  title: 'Lere Connect',
+  title: 'Lere Tele App',
   description: 'Connect with people globally through HD video and voice calls.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Lere Connect',
+    title: 'Lere Tele App',
   },
-  applicationName: 'Lere Connect',
+  applicationName: 'Lere Tele App',
   formatDetection: {
     telephone: true,
   },
