@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -34,8 +33,6 @@ export default function FaceSetupPage() {
             videoRef.current.srcObject = stream;
           }
           
-          // Realistic Liveness Detection Phase
-          // Requires 6 seconds of consistent presence
           setTimeout(() => {
             setStep("analyzing");
           }, 6000);
@@ -66,14 +63,13 @@ export default function FaceSetupPage() {
   const handleFinalize = async () => {
     if (!user?.id || !firestore) return;
     
-    // Simulating deep-tissue facial analysis
     await new Promise(r => setTimeout(r, 4000));
     
     try {
       const userRef = doc(firestore, "users", user.id);
       await updateDoc(userRef, {
         faceLoginActive: true,
-        faceData: "secure_biometric_hash_" + Math.random().toString(36).substring(2, 15),
+        faceData: "secure_biometric_hash_" + user.id + "_" + Math.random().toString(36).substring(7),
         voiceLoginActive: false,
         lastBiometricUpdate: serverTimestamp()
       });

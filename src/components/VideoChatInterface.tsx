@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -53,21 +52,18 @@ export function VideoChatInterface({ isOpen, onClose, receiverId, incomingCallId
   
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<any[]>([]);
-  const [isRecording, setIsRecording] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [callStatus, setCallStatus] = useState("Connecting...");
   const [showKeypad, setShowKeypad] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
-  const [addNumber, setAddNumber] = useState("");
 
   const pc = useRef<RTCPeerConnection | null>(null);
   const localStream = useRef<MediaStream | null>(null);
-  const remoteStream = useRef<MediaStream | null>(null);
+  const remoteStream = useRef<MediaStream | null>(new MediaStream());
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const callDocRef = useRef<any>(null);
-  const voiceNoteRecorder = useRef<MediaRecorder | null>(null);
 
   useEffect(() => {
     if (isOpen && firestore && user) {
@@ -91,16 +87,16 @@ export function VideoChatInterface({ isOpen, onClose, receiverId, incomingCallId
       
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localStream.current = stream;
-      remoteStream.current = new MediaStream();
+      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
       
       stream.getTracks().forEach(t => pc.current?.addTrack(t, stream));
-      pc.current.ontrack = (e) => e.streams[0].getTracks().forEach(t => remoteStream.current?.addTrack(t));
       
-      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = remoteStream.current;
-        remoteVideoRef.current.onloadedmetadata = () => remoteVideoRef.current?.play().catch(() => {});
-      }
+      pc.current.ontrack = (e) => {
+        e.streams[0].getTracks().forEach(t => remoteStream.current?.addTrack(t));
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = remoteStream.current;
+        }
+      };
 
       if (incomingCallId) {
         const callDoc = doc(firestore, "calls", incomingCallId);
@@ -159,7 +155,6 @@ export function VideoChatInterface({ isOpen, onClose, receiverId, incomingCallId
       });
 
     } catch (err) {
-      console.error(err);
       setCallStatus("Error");
       toast({ variant: "destructive", title: "Media Access Failed" });
     }
@@ -189,9 +184,14 @@ export function VideoChatInterface({ isOpen, onClose, receiverId, incomingCallId
 
   return (
     <div className="fixed inset-0 z-[60] bg-black/95 backdrop-blur-lg flex flex-col md:flex-row p-2 gap-2 overflow-hidden">
-      {/* Video Section */}
       <div className="flex-1 relative bg-slate-900 rounded-3xl overflow-hidden border border-white/10 shadow-2xl min-h-[40vh] md:min-h-0">
-        <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+        <video 
+          ref={remoteVideoRef} 
+          autoPlay 
+          playsInline 
+          className="w-full h-full object-cover"
+          onLoadedMetadata={() => remoteVideoRef.current?.play()}
+        />
         <div className="absolute top-4 left-4 z-20">
           <Badge className="bg-primary/80 backdrop-blur-md">{callStatus}</Badge>
         </div>
@@ -216,7 +216,6 @@ export function VideoChatInterface({ isOpen, onClose, receiverId, incomingCallId
         </div>
       </div>
 
-      {/* Chat Section */}
       <div className="w-full md:w-[400px] flex flex-col bg-white rounded-3xl overflow-hidden shadow-2xl relative">
         <div className="p-4 bg-primary text-white flex items-center justify-between shadow-md">
           <div className="flex items-center gap-2">
@@ -229,20 +228,13 @@ export function VideoChatInterface({ isOpen, onClose, receiverId, incomingCallId
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50 scrollbar-hide">
-          {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-30 italic text-sm">
-              <MessageSquare className="h-10 w-10 mb-2" />
-              <p>Start chatting...</p>
-            </div>
-          ) : (
-            messages.map((m, i) => (
-              <div key={i} className={`flex flex-col ${m.senderId === user?.phoneNumber ? 'items-end' : 'items-start'}`}>
-                <div className={`p-3 rounded-2xl max-w-[85%] text-sm shadow-sm ${m.senderId === user?.phoneNumber ? 'bg-primary text-white rounded-tr-none' : 'bg-white border rounded-tl-none'}`}>
-                  <p>{m.text}</p>
-                </div>
+          {messages.map((m, i) => (
+            <div key={i} className={`flex flex-col ${m.senderId === user?.phoneNumber ? 'items-end' : 'items-start'}`}>
+              <div className={`p-3 rounded-2xl max-w-[85%] text-sm shadow-sm ${m.senderId === user?.phoneNumber ? 'bg-primary text-white rounded-tr-none' : 'bg-white border rounded-tl-none'}`}>
+                <p>{m.text}</p>
               </div>
-            ))
-          )}
+            </div>
+          ))}
         </div>
 
         <div className="p-4 bg-white border-t space-y-4">

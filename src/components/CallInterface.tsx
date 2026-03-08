@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -69,20 +68,16 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
 
   const pc = useRef<RTCPeerConnection | null>(null);
   const localStream = useRef<MediaStream | null>(null);
-  const remoteStream = useRef<MediaStream | null>(null);
+  const remoteStream = useRef<MediaStream | null>(new MediaStream());
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const callDocRef = useRef<any>(null);
-  const mediaRecorder = useRef<MediaRecorder | null>(null);
   const voiceNoteRecorder = useRef<MediaRecorder | null>(null);
-  const recordedChunks = useRef<Blob[]>([]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isOpen && callStatus === "Connected") {
       interval = setInterval(() => setCallDuration((prev) => prev + 1), 1000);
-    } else {
-      setCallDuration(0);
     }
     return () => clearInterval(interval);
   }, [isOpen, callStatus]);
@@ -91,20 +86,12 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
     if (isOpen && firestore && user) {
       startCall();
     }
-    return () => {
-      cleanup();
-    };
+    return () => cleanup();
   }, [isOpen, firestore, user]);
 
   const cleanup = () => {
-    if (isRecording) stopRecording();
-    if (localStream.current) {
-      localStream.current.getTracks().forEach(track => track.stop());
-    }
-    if (pc.current) {
-      pc.current.close();
-      pc.current = null;
-    }
+    if (localStream.current) localStream.current.getTracks().forEach(track => track.stop());
+    if (pc.current) pc.current.close();
     if (callDocRef.current) {
       updateDoc(callDocRef.current, { status: 'ended', endTime: serverTimestamp() }).catch(() => {});
     }
@@ -123,30 +110,18 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
       });
       
       localStream.current = stream;
-      remoteStream.current = new MediaStream();
-      
-      stream.getTracks().forEach((track) => {
-        if (pc.current && localStream.current) {
-          pc.current.addTrack(track, localStream.current);
-        }
-      });
+      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+
+      stream.getTracks().forEach((track) => pc.current?.addTrack(track, stream));
 
       pc.current.ontrack = (event) => {
         event.streams[0].getTracks().forEach((track) => {
-          if (remoteStream.current) {
-            remoteStream.current.addTrack(track);
-          }
+          remoteStream.current?.addTrack(track);
         });
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = remoteStream.current;
+        }
       };
-
-      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = remoteStream.current;
-        // Important: Audio output setup
-        remoteVideoRef.current.onloadedmetadata = () => {
-          remoteVideoRef.current?.play().catch(e => console.log("Audio play blocked", e));
-        };
-      }
 
       if (incomingCallId) {
         const callDoc = doc(firestore, "calls", incomingCallId);
@@ -154,43 +129,37 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
         
         onSnapshot(callDoc, (snapshot) => {
           const data = snapshot.data();
-          if (data?.status === 'ended' || data?.status === 'rejected') onClose();
+          if (data?.status === 'ended') onClose();
         });
 
-        const callSnapshot = await getDocs(collection(callDoc, "offer"));
-        const offerData = callSnapshot.docs[0]?.data();
+        const offerSnapshot = await getDocs(collection(callDoc, "offer"));
+        const offerData = offerSnapshot.docs[0]?.data();
         if (offerData) {
           await pc.current.setRemoteDescription(new RTCSessionDescription(offerData));
-          const answerDescription = await pc.current.createAnswer();
-          await pc.current.setLocalDescription(answerDescription);
+          const answer = await pc.current.createAnswer();
+          await pc.current.setLocalDescription(answer);
           await updateDoc(callDoc, { 
-            answer: { type: answerDescription.type, sdp: answerDescription.sdp },
+            answer: { type: answer.type, sdp: answer.sdp },
             status: 'accepted'
           });
         }
 
-        onSnapshot(collection(callDoc, "callerCandidates"), (snapshot) => {
-          snapshot.docChanges().forEach((change) => {
-            if (change.type === "added" && pc.current) {
-              pc.current.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(e => {});
-            }
+        onSnapshot(collection(callDoc, "callerCandidates"), (snap) => {
+          snap.docChanges().forEach((c) => {
+            if (c.type === "added") pc.current?.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => {});
           });
         });
 
-        pc.current.onicecandidate = (event) => {
-          if (event.candidate) addDoc(collection(callDoc, "receiverCandidates"), event.candidate.toJSON());
-        };
+        pc.current.onicecandidate = (e) => e.candidate && addDoc(collection(callDoc, "receiverCandidates"), e.candidate.toJSON());
         setCallStatus("Connected");
       } else if (receiverId) {
         const callDoc = doc(collection(firestore, "calls"));
         callDocRef.current = callDoc;
 
-        pc.current.onicecandidate = (event) => {
-          if (event.candidate) addDoc(collection(callDoc, "callerCandidates"), event.candidate.toJSON());
-        };
+        pc.current.onicecandidate = (e) => e.candidate && addDoc(collection(callDoc, "callerCandidates"), e.candidate.toJSON());
 
-        const offerDescription = await pc.current.createOffer();
-        await pc.current.setLocalDescription(offerDescription);
+        const offer = await pc.current.createOffer();
+        await pc.current.setLocalDescription(offer);
 
         await setDoc(callDoc, { 
           status: 'ringing', 
@@ -200,37 +169,27 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
           startTime: serverTimestamp() 
         });
 
-        await addDoc(collection(callDoc, "offer"), {
-          type: offerDescription.type,
-          sdp: offerDescription.sdp
-        });
+        await addDoc(collection(callDoc, "offer"), { type: offer.type, sdp: offer.sdp });
 
-        onSnapshot(callDoc, (snapshot) => {
-          const data = snapshot.data();
-          if (data?.answer && pc.current && !pc.current.currentRemoteDescription) {
-            pc.current.setRemoteDescription(new RTCSessionDescription(data.answer));
+        onSnapshot(callDoc, (snap) => {
+          const data = snap.data();
+          if (data?.answer && !pc.current?.currentRemoteDescription) {
+            pc.current?.setRemoteDescription(new RTCSessionDescription(data.answer));
             setCallStatus("Connected");
           }
-          if (data?.status === 'ended' || data?.status === 'rejected') onClose();
+          if (data?.status === 'ended') onClose();
         });
 
-        onSnapshot(collection(callDoc, "receiverCandidates"), (snapshot) => {
-          snapshot.docChanges().forEach((change) => {
-            if (change.type === "added" && pc.current) {
-              pc.current.addIceCandidate(new RTCIceCandidate(change.doc.data())).catch(e => {});
-            }
+        onSnapshot(collection(callDoc, "receiverCandidates"), (snap) => {
+          snap.docChanges().forEach((c) => {
+            if (c.type === "added") pc.current?.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => {});
           });
         });
       }
     } catch (error) {
-      setCallStatus("Error connecting");
-      toast({ variant: "destructive", title: "Media Error", description: "Could not access microphone or camera." });
+      setCallStatus("Error");
+      toast({ variant: "destructive", title: "Media Error", description: "Hardware access denied." });
     }
-  };
-
-  const stopRecording = () => {
-    mediaRecorder.current?.stop();
-    setIsRecording(false);
   };
 
   const handleSendVoiceNote = () => {
@@ -246,13 +205,6 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
     }
   };
 
-  const handleAddMember = async () => {
-    if (!addNumber || !firestore) return;
-    toast({ title: "Connecting", description: `Ringing ${addNumber}...` });
-    setShowAddMember(false);
-    setAddNumber("");
-  };
-
   const rainbowKeys = [
     { k: "1", c: "bg-red-500" }, { k: "2", c: "bg-orange-500" }, { k: "3", c: "bg-yellow-500" },
     { k: "4", c: "bg-green-500" }, { k: "5", c: "bg-blue-500" }, { k: "6", c: "bg-indigo-500" },
@@ -265,34 +217,35 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-4">
       <div className="relative w-full max-w-2xl h-full flex flex-col items-center">
-        {/* Call Info */}
         <div className="absolute top-10 text-center z-20 w-full">
           <h2 className="text-white text-3xl font-bold mb-2">{receiverId || "Lere Participant"}</h2>
           <div className="flex items-center justify-center gap-2">
             <span className="text-secondary font-medium tracking-widest uppercase text-sm">{callStatus}</span>
-            {isRecording && <Radio className="h-4 w-4 text-red-500 animate-pulse" />}
           </div>
-          <p className="text-white/60 mt-2 font-mono">{Math.floor(callDuration/60)}:{ (callDuration%60).toString().padStart(2,'0') }</p>
+          <p className="text-white/60 mt-2 font-mono">{Math.floor(callDuration/60)}:{(callDuration%60).toString().padStart(2,'0')}</p>
         </div>
 
-        {/* Video Area */}
         <div className="flex-1 w-full relative flex items-center justify-center overflow-hidden rounded-3xl bg-slate-900 border border-white/10 shadow-2xl">
-          {type === "video" ? (
-            <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-40 h-40 rounded-full bg-primary/20 flex items-center justify-center border-4 border-primary animate-pulse">
-               <Phone className="h-16 w-16 text-white" />
+          <video 
+            ref={remoteVideoRef} 
+            autoPlay 
+            playsInline 
+            className="w-full h-full object-cover"
+            onLoadedMetadata={() => remoteVideoRef.current?.play()}
+          />
+          {type === "voice" && callStatus === "Connected" && (
+            <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80">
+              <div className="w-40 h-40 rounded-full bg-primary/20 flex items-center justify-center border-4 border-primary animate-pulse">
+                 <Phone className="h-16 w-16 text-white" />
+              </div>
             </div>
           )}
-          {/* Audio output for voice calls */}
-          <audio ref={remoteVideoRef as any} autoPlay />
           
           <div className="absolute bottom-4 right-4 w-24 h-32 rounded-xl border-2 border-white/20 overflow-hidden shadow-lg bg-black">
             <video ref={localVideoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
           </div>
         </div>
 
-        {/* Action Panel */}
         <div className="w-full max-w-md bg-white/10 backdrop-blur-xl border border-white/10 rounded-3xl p-6 my-6 flex flex-col items-center gap-6 shadow-xl">
           <div className="flex items-center justify-evenly w-full">
             <Button variant="ghost" size="icon" className={`h-12 w-12 rounded-full ${isMuted ? 'bg-red-500' : 'bg-white/10'} text-white`} onClick={() => { localStream.current?.getAudioTracks().forEach(t => t.enabled = !t.enabled); setIsMuted(!isMuted); }}>
@@ -317,9 +270,8 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
           </div>
         </div>
 
-        {/* Keypad Overlay */}
         {showKeypad && (
-          <div className="absolute inset-x-0 bottom-40 mx-auto w-full max-w-xs bg-black/80 backdrop-blur-xl p-6 rounded-3xl grid grid-cols-3 gap-3 border border-white/10 z-50 animate-in slide-in-from-bottom-10">
+          <div className="absolute inset-x-0 bottom-40 mx-auto w-full max-w-xs bg-black/80 backdrop-blur-xl p-6 rounded-3xl grid grid-cols-3 gap-3 border border-white/10 z-50">
             <div className="col-span-3 flex justify-between items-center mb-2">
               <span className="text-white text-xs font-bold uppercase tracking-widest">In-Call Keypad</span>
               <X className="h-4 w-4 text-white cursor-pointer" onClick={() => setShowKeypad(false)} />
@@ -330,15 +282,14 @@ export function CallInterface({ type, isOpen, onClose, receiverId, incomingCallI
           </div>
         )}
 
-        {/* Add Member Dialog */}
         {showAddMember && (
-          <div className="absolute inset-x-0 bottom-40 mx-auto w-full max-w-xs bg-white p-6 rounded-3xl border shadow-2xl z-50 animate-in zoom-in-95">
+          <div className="absolute inset-x-0 bottom-40 mx-auto w-full max-w-xs bg-white p-6 rounded-3xl border shadow-2xl z-50">
             <h3 className="font-bold mb-4">Add Participant</h3>
             <div className="space-y-4">
               <Input placeholder="Enter phone number" className="h-12 rounded-xl" value={addNumber} onChange={(e) => setAddNumber(e.target.value)} />
               <div className="flex gap-2">
                 <Button variant="ghost" className="flex-1" onClick={() => setShowAddMember(false)}>Cancel</Button>
-                <Button className="flex-1 bg-primary text-white" onClick={handleAddMember}>Add Now</Button>
+                <Button className="flex-1 bg-primary text-white" onClick={() => { toast({ title: "Signal Sent", description: "Ringing member..." }); setShowAddMember(false); }}>Add</Button>
               </div>
             </div>
           </div>

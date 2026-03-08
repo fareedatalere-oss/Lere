@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -32,7 +31,7 @@ export default function VoiceSetupPage() {
           setStep(nextStep);
           return 100;
         }
-        return p + 4; // Approx 4 seconds recording
+        return p + 4;
       });
     }, 150);
   };
@@ -46,14 +45,13 @@ export default function VoiceSetupPage() {
   const handleSave = async () => {
     if (!user?.id || !firestore) return;
     
-    // Simulated deep vocal pattern comparison
     await new Promise(r => setTimeout(r, 3500));
     
     try {
       const userRef = doc(firestore, "users", user.id);
       await updateDoc(userRef, {
         voiceLoginActive: true,
-        voiceData: "secure_vocal_signature_" + Date.now(),
+        voiceData: "secure_vocal_signature_" + user.id + "_" + Date.now(),
         faceLoginActive: false,
         lastBiometricUpdate: serverTimestamp()
       });
