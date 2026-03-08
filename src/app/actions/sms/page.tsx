@@ -20,7 +20,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@/context/UserContext";
 import { useFirebase, useMemoFirebase, useCollection } from "@/firebase";
-import { collection, query, where, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, addDoc, serverTimestamp, getDocs, limit } from "firebase/firestore";
 
 export default function SMSPage() {
   const router = useRouter();
@@ -33,7 +33,6 @@ export default function SMSPage() {
   const [recipient, setRecipient] = useState("");
   const [messageText, setMessageText] = useState("");
 
-  // Simplified query: Remove OrderBy until index is created to prevent page crash
   const messagesQuery = useMemoFirebase(() => {
     if (!firestore || !user?.phoneNumber) return null;
     return query(
@@ -42,7 +41,7 @@ export default function SMSPage() {
     );
   }, [firestore, user?.phoneNumber]);
 
-  const { data: messages, isLoading, error: queryError } = useCollection(messagesQuery);
+  const { data: messages, isLoading } = useCollection(messagesQuery);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,12 +49,28 @@ export default function SMSPage() {
     
     setIsSending(true);
     try {
+      // VERIFY RECIPIENT IS REGISTERED
+      const usersRef = collection(firestore, "users");
+      const q = query(usersRef, where("phoneNumber", "==", recipient), limit(1));
+      const userSnap = await getDocs(q);
+
+      if (userSnap.empty) {
+        toast({
+          variant: "destructive",
+          title: "Invalid Recipient",
+          description: "This phone number is not registered on our network.",
+        });
+        setIsSending(false);
+        return;
+      }
+
       await addDoc(collection(firestore, "messages"), {
         sender: user.phoneNumber,
         recipientNumber: recipient,
         text: messageText,
         createdAt: serverTimestamp(),
       });
+      
       toast({ title: "SMS Sent", description: "Message delivered through Lere network." });
       setRecipient("");
       setMessageText("");
@@ -93,7 +108,7 @@ export default function SMSPage() {
               <form onSubmit={handleSend} className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-bold">Recipient Number</label>
-                  <Input placeholder="+234..." required className="h-12 rounded-xl" value={recipient} onChange={(e) => setRecipient(e.target.value)} />
+                  <Input placeholder="080..." required className="h-12 rounded-xl" value={recipient} onChange={(e) => setRecipient(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold">Message</label>
@@ -126,7 +141,7 @@ export default function SMSPage() {
                     <div className="flex-1 space-y-1">
                       <div className="flex justify-between items-start">
                         <h4 className="font-bold text-sm">{msg.sender}</h4>
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Calendar className="h-2 w-2" /> {msg.createdAt?.seconds ? new Date(msg.createdAt.seconds * 1000).toLocaleTimeString() : 'Recently'}</span>
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Calendar className="h-2 w-2" /> {msg.createdAt?.seconds ? new Date(msg.createdAt.seconds * 1000).toLocaleTimeString() : 'Just now'}</span>
                       </div>
                       <p className="text-xs text-muted-foreground line-clamp-3">{msg.text}</p>
                     </div>

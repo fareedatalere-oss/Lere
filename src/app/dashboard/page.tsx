@@ -138,6 +138,13 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, [firestore, user, firebaseUser]);
 
+  useEffect(() => {
+    if (!incomingCall && ringtoneRef.current) {
+      ringtoneRef.current.pause();
+      ringtoneRef.current.currentTime = 0;
+    }
+  }, [incomingCall]);
+
   const handleUnlock = () => {
     if (pinInput === user?.pin) {
       setIsLocked(false);
@@ -162,7 +169,6 @@ export default function Dashboard() {
     setBiometricStatus("scanning");
     setIsBiometricScanning(true);
     
-    // PERFORM REAL SIGNATURE MATCHING
     setTimeout(() => {
       const storedSignature = type === 'face' ? user?.faceData : user?.voiceData;
       
@@ -278,6 +284,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background pb-32">
+      <audio ref={ringtoneRef} loop />
       <header className="bg-white border-b px-4 py-4 sticky top-0 z-40 shadow-sm">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
