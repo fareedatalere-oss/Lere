@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -9,20 +8,17 @@ import { Label } from "@/components/ui/label";
 import { 
   ArrowLeft, 
   CreditCard, 
-  Building2, 
   ShieldCheck, 
   Loader2, 
-  CheckCircle2,
-  Copy,
-  RefreshCw,
-  AlertCircle
+  Zap,
+  Building2,
+  Wallet
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
 import { useFirebase } from "@/firebase";
-import { doc, updateDoc, increment } from "firebase/firestore";
+import { doc, updateDoc, increment, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { generateVirtualAccountAction } from "@/lib/flutterwave-actions";
 
 declare const FlutterwaveCheckout: any;
 
@@ -32,12 +28,9 @@ export default function FundWalletPage() {
   const { firestore } = useFirebase();
   const { toast } = useToast();
   
-  const [method, setMethod] = useState<"card" | "bank" | null>(null);
   const [amount, setAmount] = useState("");
   const [pin, setPin] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [hasValidatedCard, setHasValidatedCard] = useState(false);
-  const [virtualAccount, setVirtualAccount] = useState<{number: string, bank: string} | null>(null);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -49,243 +42,153 @@ export default function FundWalletPage() {
     };
   }, []);
 
-  const generateRealAccount = async () => {
-    if (!user) return;
-    setIsLoading(true);
+  const val = parseFloat(amount || "0");
+  const fee = val > 0 && val <= 1000 ? 30 : val > 1000 ? 50 : 0;
+  const finalCredit = val - fee;
+
+  const handleFlutterwavePayment = (e: React.FormEvent) => {
+    e.preventDefault();
     
-    try {
-      const result = await generateVirtualAccountAction({
-        email: `${user.phoneNumber}@lereconnect.com`,
-        name: user.username,
-        phone: user.phoneNumber
-      });
-
-      if (result.error) {
-        throw new Error(result.message);
-      }
-
-      setVirtualAccount({
-        number: result.account_number,
-        bank: result.bank_name
-      });
-      toast({ title: "Account Generated", description: `Transfer to ${result.bank_name} now.` });
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "API Error", description: err.message });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleValidation = () => {
-    if (!process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY) {
-      toast({ variant: "destructive", title: "Configuration Error", description: "Flutterwave public key missing in project settings." });
+    if (!user || !firestore) return;
+    if (val < 100) {
+      toast({ variant: "destructive", title: "Minimum Amount", description: "You must deposit at least ₦100." });
       return;
     }
-    
-    setIsLoading(true);
-    const config = {
-      public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY,
-      tx_ref: "VAL_" + Date.now().toString(),
-      amount: 100,
-      currency: 'NGN',
-      payment_options: 'card',
-      customer: {
-        email: `${user?.phoneNumber}@lereconnect.com`,
-        phone_number: user?.phoneNumber,
-        name: user?.username,
-      },
-      callback: async (response: any) => {
-        if (response.status === "successful") {
-          toast({ title: "Card Validated", description: "₦100 charged. Refunding to wallet..." });
-          setHasValidatedCard(true);
-          if (user?.id && firestore) {
-            const userRef = doc(firestore, "users", user.id);
-            await updateDoc(userRef, { balance: increment(90) });
-          }
-        }
-        setIsLoading(false);
-      },
-      onclose: () => setIsLoading(false),
-    };
-    FlutterwaveCheckout(config);
-  };
-
-  const handleFund = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (pin !== user?.pin) {
+    if (pin !== user.pin) {
       toast({ variant: "destructive", title: "Invalid PIN", description: "The transaction PIN entered is incorrect." });
       return;
     }
 
+    if (!process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY) {
+      toast({ variant: "destructive", title: "Configuration Error", description: "Public key missing in environment variables." });
+      return;
+    }
+
     setIsLoading(true);
-    const fundAmount = parseFloat(amount);
-    const finalCredit = fundAmount - 10;
 
     const config = {
       public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY,
-      tx_ref: "FUND_" + Date.now().toString(),
-      amount: fundAmount,
+      tx_ref: "LERE_" + Date.now().toString(),
+      amount: val,
       currency: 'NGN',
-      payment_options: 'card',
+      payment_options: 'card,ussd,account,banktransfer,qr',
       customer: {
-        email: `${user?.phoneNumber}@lereconnect.com`,
-        phone_number: user?.phoneNumber,
-        name: user?.username,
+        email: `${user.phoneNumber}@lereconnect.com`,
+        phone_number: user.phoneNumber,
+        name: user.username,
+      },
+      customizations: {
+        title: "Lere Tele App",
+        description: `Wallet Funding for ${user.username}`,
+        logo: "https://picsum.photos/seed/lere/200/200",
       },
       callback: async (response: any) => {
         if (response.status === "successful") {
-          if (user?.id && firestore) {
-            const userRef = doc(firestore, "users", user.id);
-            await updateDoc(userRef, { balance: increment(finalCredit) });
-            toast({ title: "Funded Successfully", description: `₦${finalCredit.toLocaleString()} added to your wallet.` });
-            router.push("/dashboard");
-          }
+          const userRef = doc(firestore, "users", user.id!);
+          await updateDoc(userRef, { balance: increment(finalCredit) });
+          
+          await addDoc(collection(firestore, "transactions"), {
+            userId: user.id,
+            type: "Wallet Funding",
+            amount: val,
+            fee: fee,
+            total: finalCredit,
+            status: "Success",
+            method: response.payment_type || "Transfer",
+            createdAt: serverTimestamp()
+          });
+
+          toast({ title: "Funding Successful", description: `₦${finalCredit.toLocaleString()} added to your balance.` });
+          router.push("/dashboard");
+        } else {
+          toast({ variant: "destructive", title: "Payment Failed", description: "Could not complete transaction." });
         }
         setIsLoading(false);
       },
       onclose: () => setIsLoading(false),
     };
+
     FlutterwaveCheckout(config);
   };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({ title: "Copied", description: "Account number copied to clipboard." });
-  };
-
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-md mx-auto space-y-6">
+    <div className="min-h-screen bg-background p-4 flex flex-col items-center">
+      <div className="max-w-md w-full space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => method ? setMethod(null) : router.back()} className="rounded-full bg-white shadow-sm">
+          <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full bg-white shadow-sm">
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl font-bold">Fund Wallet</h1>
+          <h1 className="text-2xl font-bold">Deposit Funds</h1>
         </div>
 
-        {!method ? (
-          <div className="grid gap-4">
-            <Card className="border-none shadow-sm hover:shadow-md cursor-pointer transition-all" onClick={() => setMethod("card")}>
-              <CardContent className="p-6 flex items-center gap-4">
-                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
-                  <CreditCard className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold">Use Credit Card</h3>
-                  <p className="text-xs text-muted-foreground">Fund instantly using Flutterwave Secure Pay</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-none shadow-sm hover:shadow-md cursor-pointer transition-all" onClick={() => setMethod("bank")}>
-              <CardContent className="p-6 flex items-center gap-4">
-                <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600">
-                  <Building2 className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold">Use Bank Transfer</h3>
-                  <p className="text-xs text-muted-foreground">Generate a unique virtual account for transfer</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="p-4 bg-slate-50 rounded-2xl border border-dashed text-center">
-              <p className="text-[10px] uppercase font-bold text-muted-foreground">Transaction Charges</p>
-              <p className="text-sm font-bold text-primary">₦10.00 flat fee applies to all funding</p>
-            </div>
+        <Card className="border-none shadow-xl rounded-3xl overflow-hidden bg-white">
+          <div className="bg-primary p-10 text-white text-center">
+            <Wallet className="h-12 w-12 mx-auto mb-4 opacity-80" />
+            <h2 className="text-xl font-bold">Secure Checkout</h2>
+            <p className="text-white/60 text-xs">Supports USSD, Card, and Bank Transfer</p>
           </div>
-        ) : method === "card" ? (
-          <Card className="border-none shadow-xl overflow-hidden rounded-3xl">
-            <div className="bg-primary p-6 text-white text-center">
-              <CreditCard className="h-10 w-10 mx-auto mb-2 opacity-80" />
-              <h2 className="text-xl font-bold">Secure Card Funding</h2>
-            </div>
-            <CardContent className="p-6 space-y-6">
-              {!hasValidatedCard ? (
-                <div className="text-center space-y-4">
-                  <div className="p-4 bg-yellow-50 text-yellow-800 rounded-xl text-xs font-medium">
-                    New cards must be validated with a ₦100 charge (Full refund to wallet minus ₦10 fee).
-                  </div>
-                  <Button className="w-full h-14 rounded-2xl bg-primary text-white font-bold text-lg shadow-lg" onClick={handleValidation} disabled={isLoading}>
-                    {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5 mr-2" />}
-                    Validate My Card
-                  </Button>
-                </div>
-              ) : (
-                <form onSubmit={handleFund} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Amount to Deposit (₦)</Label>
-                    <Input 
-                      type="number" 
-                      placeholder="e.g. 5000" 
-                      className="h-12 rounded-xl"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Transaction PIN</Label>
-                    <Input 
-                      type="password" 
-                      placeholder="****" 
-                      maxLength={4}
-                      className="h-12 rounded-xl text-center text-xl tracking-widest"
-                      value={pin}
-                      onChange={(e) => setPin(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full h-14 rounded-2xl bg-primary text-white font-bold" disabled={isLoading}>
-                    {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Pay Now with Flutterwave"}
-                  </Button>
-                </form>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-6">
-            <Card className="border-none shadow-xl bg-white rounded-3xl overflow-hidden">
-               <div className="bg-green-600 p-6 text-white text-center">
-                <Building2 className="h-10 w-10 mx-auto mb-2 opacity-80" />
-                <h2 className="text-xl font-bold">Virtual Account</h2>
-                <p className="text-xs opacity-70">Official Flutterwave Channel</p>
+          <CardContent className="p-8">
+            <form onSubmit={handleFlutterwavePayment} className="space-y-6">
+              <div className="space-y-2">
+                <Label>Amount to Deposit (₦)</Label>
+                <Input 
+                  type="number" 
+                  placeholder="e.g. 5000" 
+                  className="h-14 rounded-2xl text-lg font-bold"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  required
+                />
               </div>
-              <CardContent className="p-6 space-y-6">
-                {!virtualAccount ? (
-                  <div className="text-center space-y-4">
-                    <p className="text-sm text-muted-foreground">Click below to generate your unique Flutterwave virtual account tied to your phone number.</p>
-                    <Button className="w-full h-14 rounded-2xl bg-green-600 text-white font-bold shadow-lg" onClick={generateRealAccount} disabled={isLoading}>
-                      {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCw className="h-5 w-5 mr-2" />}
-                      Generate Real Account
-                    </Button>
+
+              {val >= 100 && (
+                <div className="p-4 bg-slate-50 rounded-2xl border border-dashed space-y-2">
+                  <div className="flex justify-between text-xs font-bold text-muted-foreground uppercase">
+                    <span>Deposit:</span>
+                    <span>₦{val.toLocaleString()}</span>
                   </div>
-                ) : (
-                  <>
-                    <div className="p-6 bg-accent/20 rounded-2xl border-2 border-dashed border-accent flex flex-col items-center gap-2">
-                      <p className="text-[10px] font-bold uppercase text-muted-foreground">{virtualAccount.bank} / Lere Connect</p>
-                      <div className="flex items-center gap-3">
-                        <h1 className="text-3xl font-mono font-bold text-primary">{virtualAccount.number}</h1>
-                        <Button variant="ghost" size="icon" onClick={() => copyToClipboard(virtualAccount.number)}>
-                          <Copy className="h-5 w-5" />
-                        </Button>
-                      </div>
-                      <p className="text-sm font-bold">{user?.username}</p>
-                    </div>
+                  <div className="flex justify-between text-xs font-bold text-red-500 uppercase">
+                    <span>Lere Fee:</span>
+                    <span>-₦{fee.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-lg font-bold text-primary border-t pt-2">
+                    <span>Credit:</span>
+                    <span>₦{finalCredit.toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
 
-                    <div className="p-4 bg-blue-50 text-blue-800 rounded-xl text-[10px] font-bold uppercase flex gap-2 items-center">
-                      <AlertCircle className="h-4 w-4" /> This is a real Flutterwave virtual account.
-                    </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" /> Confirm PIN</Label>
+                <Input 
+                  type="password" 
+                  placeholder="****" 
+                  maxLength={4}
+                  className="h-14 rounded-2xl text-center text-3xl tracking-[1em]"
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value)}
+                  required
+                />
+              </div>
 
-                    <Button variant="outline" className="w-full h-14 rounded-2xl border-2 font-bold" onClick={() => router.push("/dashboard")}>
-                      Done, Return to Dashboard
-                    </Button>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+              <Button type="submit" className="w-full h-16 rounded-3xl bg-primary text-white font-bold text-lg shadow-lg" disabled={isLoading}>
+                {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Zap className="h-6 w-6 mr-2" />}
+                Pay with Flutterwave
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-4 bg-white rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
+            <Building2 className="h-5 w-5 text-emerald-600" />
+            <span className="text-[10px] font-bold text-center">BANK TRANSFER SUPPORTED</span>
           </div>
-        )}
+          <div className="p-4 bg-white rounded-2xl border border-slate-100 flex flex-col items-center gap-2">
+            <CreditCard className="h-5 w-5 text-blue-600" />
+            <span className="text-[10px] font-bold text-center">USSD & CARD SECURED</span>
+          </div>
+        </div>
       </div>
     </div>
   );

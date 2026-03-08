@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -59,6 +58,8 @@ export default function BuyDataPage() {
     fetchPlans(id);
   };
 
+  const SERVICE_FEE = 10; // Request: "in every data transaction my fee is 10 naira"
+
   const handlePurchase = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !firestore || !selectedPlan) return;
@@ -68,7 +69,7 @@ export default function BuyDataPage() {
       return;
     }
 
-    const total = parseFloat(selectedPlan.price) + 50;
+    const total = parseFloat(selectedPlan.price) + SERVICE_FEE;
 
     if (user.balance < total) {
       toast({ variant: "destructive", title: "Insufficient Funds", description: `Total: ₦${total.toLocaleString()}. Balance: ₦${user.balance.toLocaleString()}` });
@@ -91,7 +92,7 @@ export default function BuyDataPage() {
           userId: user.id,
           type: "Data Purchase",
           amount: selectedPlan.price,
-          charge: 50,
+          fee: SERVICE_FEE,
           total: total,
           recipient: phoneNumber,
           status: "Success",
@@ -202,8 +203,8 @@ export default function BuyDataPage() {
                   </div>
                   <div className="flex justify-between"><span>Phone:</span><span className="font-bold">{phoneNumber}</span></div>
                   <div className="flex justify-between"><span>Plan Price:</span><span className="font-bold">₦{parseFloat(selectedPlan.price).toLocaleString()}</span></div>
-                  <div className="flex justify-between text-red-500"><span>Service Fee:</span><span className="font-bold">₦50.00</span></div>
-                  <div className="flex justify-between text-primary font-bold text-lg pt-2 border-t"><span>Total Debit:</span><span>₦{(parseFloat(selectedPlan.price) + 50).toLocaleString()}</span></div>
+                  <div className="flex justify-between text-red-500"><span>Service Fee:</span><span className="font-bold">₦{SERVICE_FEE.toFixed(2)}</span></div>
+                  <div className="flex justify-between text-primary font-bold text-lg pt-2 border-t"><span>Total Debit:</span><span>₦{(parseFloat(selectedPlan.price) + SERVICE_FEE).toLocaleString()}</span></div>
                 </div>
 
                 <div className="space-y-2">

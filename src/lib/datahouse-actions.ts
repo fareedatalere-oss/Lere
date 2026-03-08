@@ -1,4 +1,3 @@
-
 'use server';
 
 /**
@@ -21,9 +20,15 @@ async function datahouseFetch(endpoint: string, options: RequestInit = {}) {
       cache: 'no-store',
     });
     
-    const result = await response.json();
+    const text = await response.text();
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      console.error("Non-JSON response from API:", text);
+      throw new Error("Invalid response from provider server.");
+    }
     
-    // Log the raw response for server-side debugging
     console.log(`Datahouse API Response (${endpoint}):`, JSON.stringify(result));
 
     if (!response.ok) {
@@ -86,8 +91,9 @@ export async function getDataPlansAction(network: string) {
   const result = await datahouseFetch(`/data_plans/${netId}`);
   if (result.error) return [];
   
-  // Normalize result based on different potential response structures
-  return Array.isArray(result) ? result : (result.results || []);
+  // Normalize result: Some endpoints return result directly as array, others in .results
+  const plans = Array.isArray(result) ? result : (result.results || result.data || []);
+  return plans;
 }
 
 export async function getExamPinsAction() {
